@@ -1,4 +1,3 @@
-// Write the readme
 # AutoServe 2.0
 AutoServe 2.0 is a web application that allows users to easily create and manage their own web servers. It provides a user-friendly interface for configuring server settings, managing files, and monitoring server performance.
 ## Features
