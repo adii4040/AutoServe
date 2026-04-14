@@ -1,5 +1,8 @@
 import * as z from "zod";
+import validator from "validator";
 import { ServiceCategoriesEnum } from '../Utils/Constants.js'
+
+const sanitizeString = (value) => validator.escape(value.trim());
 
 const bookingCreationValidation = z.object({
     serviceCategory: z
@@ -23,15 +26,16 @@ const bookingCreationValidation = z.object({
         ])
         .refine((coords) => coords.length === 2, { message: "Coordinates must be an array of two numbers [longitude, latitude]" }),
 
-    formattedAddress: z.string().trim().min(1, "Formatted address is required"),
-    landmark: z.string().trim().optional(),
-    city: z.string().trim().min(1, "City is required"),
-    state: z.string().trim().min(1, "State is required"),
-    pincode: z.string().trim().min(1, "Pincode is required")
+    formattedAddress: z.string().trim().min(1, "Formatted address is required").transform(sanitizeString),
+    landmark: z.string().trim().optional().transform((v) => (v ? sanitizeString(v) : v)),
+    city: z.string().trim().min(1, "City is required").transform(sanitizeString),
+    state: z.string().trim().min(1, "State is required").transform(sanitizeString),
+    pincode: z.string().trim().min(1, "Pincode is required").transform(sanitizeString)
 });
 
 const submitDiagnosisValidation = z.object({
-    issues: z.array(z.string().trim().min(3)).min(1),
+    issues: z.array(z.string().trim().min(3).transform(sanitizeString)).min(1),
+    inspectionFeeFinal: z.number().positive("Inspection fee must be a positive number"),
 
     services: z.array(
         z.union([
@@ -52,13 +56,35 @@ const approveServicesValidation = z.object({
     rejectedIndexes: z.array(z.number().int().min(0)),
 });
 
-const completeServiceValidation = z.object({
-    id: z.string().regex(/^[0-9a-fA-F]{24}$/),
+const cancelBookingValidation = z.object({
+    by: z.enum(["USER", "VENDOR", "SYSTEM"]).optional(),
+    reason: z.string().trim().min(5),
 });
 
-const cancelBookingValidation = z.object({
-    by: z.enum(["USER", "VENDOR", "SYSTEM"]),
-    reason: z.string().trim().min(5),
+const updateLiveLocationValidation = z.object({
+    coordinates: z.tuple([
+        z.number().min(-180).max(180),
+        z.number().min(-90).max(90),
+    ]).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+    lat: z.number().min(-90).max(90).optional(),
+    source: z.enum(["GPS", "NETWORK", "MANUAL"]).optional(),
+}).transform((data) => {
+    if (Array.isArray(data.coordinates)) return data;
+    if (typeof data.lng === 'number' && typeof data.lat === 'number') {
+        return { ...data, coordinates: [data.lng, data.lat] };
+    }
+
+    return data;
+}).refine((data) => Array.isArray(data.coordinates) && data.coordinates.length === 2, {
+    message: 'coordinates or lat/lng is required',
+    path: ['coordinates'],
+});
+
+const completeServiceValidation = z.object({
+    inspectionAmount: z.number().min(0).optional(),
+    serviceAmount: z.number().min(0).optional(),
+    paymentMode: z.enum(["UPI", "CASH", "CREDIT_CARD", "DEBIT_CARD", "NET_BANKING", "WALLET"]).optional(),
 });
 
 
@@ -68,5 +94,6 @@ export {
     submitDiagnosisValidation,
     approveServicesValidation,
     completeServiceValidation,
-    cancelBookingValidation
+    cancelBookingValidation,
+    updateLiveLocationValidation,
 }

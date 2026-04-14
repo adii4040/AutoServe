@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { ServiceCategoriesEnum } from "../Utils/Constants.js";
 
 const serviceSchema = new Schema({
     name: {
@@ -9,7 +10,7 @@ const serviceSchema = new Schema({
 
     category: {
         type: String,
-        enum: ServiceCategoryEnum,
+        enum: ServiceCategoriesEnum,
         required: true,
         index: true,
     },

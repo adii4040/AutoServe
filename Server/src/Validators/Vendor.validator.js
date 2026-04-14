@@ -20,6 +20,8 @@ const registerVendorValidation = z.object({
     shopName: z.string().trim().min(1, "Shop name is missing"),
     personalAddress: z.string().trim().min(1, "Personal Address is missing"),
     shopAddress: z.string().trim().min(1, "Shop Address is missing"),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
 
 })
 
@@ -50,6 +52,24 @@ const loginVendorValidation = z.object({
         .trim(),
 
 })
+
+const activateVendorAccountValidation = z.object({
+    email: emailValidation,
+    phone: indianPhoneRegex,
+    password: z
+        .string()
+        .min(8, { message: "Password must be at least 8 characters long" })
+        .max(12, { message: "Password can not be more than 12 digits" })
+        .regex(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,12}$/,
+            { message: "Password must include uppercase, lowercase, number, and special character" }
+        )
+        .trim(),
+    confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Confirm password does not match",
+});
 
 const resetPasswordValidation = z.object({
     password: z
@@ -85,8 +105,18 @@ const updateVendorValidation = z.object({
 
 })
 
+const updateVendorLocationValidation = z.object({
+    coordinates: z.tuple([
+        z.number().min(-180).max(180),
+        z.number().min(-90).max(90),
+    ]),
+});
+
 
 export {
     registerVendorValidation,
-    physicalVerificationValidation
+    physicalVerificationValidation,
+    loginVendorValidation,
+    activateVendorAccountValidation,
+    updateVendorLocationValidation,
 }

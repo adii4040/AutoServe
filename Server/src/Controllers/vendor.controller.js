@@ -1,3 +1,25 @@
+import { getVendorBookingDetail } from "../Services/booking.service.js";
+// GET /api/v1/vendor/booking/:bookingId
+export const getVendorBookingDetailController = asyncHandler(async (req, res) => {
+    const booking = await getVendorBookingDetail(req.vendor._id, req.params.bookingId);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking fetched successfully"));
+});
+// PATCH /api/v1/vendor/availability
+export const updateAvailabilityStatus = asyncHandler(async (req, res) => {
+    const vendorId = req.vendor._id;
+    const { availablityStatus } = req.body;
+
+    const vendor = await Vendor.findByIdAndUpdate(
+        vendorId,
+        { $set: { availablityStatus } },
+        { new: true, select: "availablityStatus" }
+    );
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    return res.status(200).json(
+        new ApiResponse(200, { availablityStatus: vendor.availablityStatus }, "Availability status updated successfully.")
+    );
+});
 import { Vendor } from "../Models/Vendor.model.js";
 import fs from 'fs';
 import { verifyDocs } from "../Utils/OCRDocVerfication.utils.js";
@@ -5,36 +27,105 @@ import { asyncHandler } from "../Utils/AsyncHandler.utils.js";
 import { ApiError } from "../Utils/ApiError.utils.js";
 import { ApiResponse } from "../Utils/ApiResponse.utils.js";
 import { uploadOnCloudinary } from "../Utils/Cloudinary.utils.js";
-import { sendMail, VendorApprovalRejectionMailGen } from '../Utils/mail.utils.js'
+import { sendMail, VendorApprovalRejectionMailGen, VendorOnboardingPendingMailGen, VendorApprovedLoginMailGen } from '../Utils/mail.utils.js'
+import { cookieOption } from "../Utils/Constants.js";
+import { logger } from "../Utils/logger.js";
+
+const generateVendorRefreshAndAccessToken = async (vendorId) => {
+    const vendor = await Vendor.findById(vendorId).select("+password");
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    const accessToken = vendor.generateAccessToken();
+    const refreshToken = vendor.generateRefreshToken();
+
+    vendor.refreshToken = refreshToken;
+    await vendor.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+};
+
+const geocodeAddress = async (addressText) => {
+    try {
+        if (!addressText) return null
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addressText)}`, {
+            headers: {
+                "User-Agent": "AutoServe/1.0",
+            },
+            signal: controller.signal,
+        })
+        clearTimeout(timeout)
+
+        if (!res.ok) return null
+        const data = await res.json()
+        if (!Array.isArray(data) || data.length === 0) return null
+
+        const first = data[0]
+        const lat = Number(first.lat)
+        const lon = Number(first.lon)
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+
+        return [lon, lat]
+    } catch {
+        return null
+    }
+}
 
 const registerVendor = asyncHandler(async (req, res) => {
     //Get all the details from the vendor
-    const { fullname, email, phone, shopName, personalAddress, shopAddress } = req.body
+    const { fullname, email, phone, shopName, personalAddress, shopAddress, latitude, longitude } = req.body
 
-    const existingVendor = await Vendor.findOne({ $or: [{ email }, { phone }] })
-    if (existingVendor) throw new ApiError(400, "Vendor already exists!")
+    const normalizedEmail = String(email || "").trim().toLowerCase()
+    const normalizedPhone = String(phone || "").trim()
+
+    const [existingByEmail, existingByPhone] = await Promise.all([
+        Vendor.findOne({ email: normalizedEmail }).select("_id email"),
+        Vendor.findOne({ phone: normalizedPhone }).select("_id phone"),
+    ])
+
+    if (existingByEmail && existingByPhone) {
+        throw new ApiError(409, "Vendor already exists with this email and phone")
+    }
+
+    if (existingByEmail) {
+        throw new ApiError(409, "Vendor already exists with this email")
+    }
+
+    if (existingByPhone) {
+        throw new ApiError(409, "Vendor already exists with this phone number")
+    }
     //Check if the documents are submited 
     if (!req.files?.panCard || !req.files?.aadharCard) {
         throw new ApiError(404, "Required files are missing.")
     }
-    console.log(req.body)
+    logger.info("registerVendor payload received", { email, phone, shopName })
     const files = req.files;
-    console.log(req.files)
+    logger.info("registerVendor files received", { fileKeys: Object.keys(files || {}) })
 
     const PANLocalPath = files.panCard[0].path;
     const AadharLocalPath = files.aadharCard[0].path;
 
+    const cleanupTempFiles = () => {
+        if (PANLocalPath && fs.existsSync(PANLocalPath)) fs.unlinkSync(PANLocalPath)
+        if (AadharLocalPath && fs.existsSync(AadharLocalPath)) fs.unlinkSync(AadharLocalPath)
+    }
+
     //Perform OCR
 
-    // console.log("PAN", PANLocalPath, "Aadhar", AadharLocalPath)
-    const { verified, matchedFields, confidenceScore } = await verifyDocs(PANLocalPath, fullname)  //AadharLocalPath personalAddress
+    const { verified, matchedFields, confidenceScore, error } = await verifyDocs(PANLocalPath, fullname)  //AadharLocalPath personalAddress
+    logger.info("registerVendor OCR verification result", { verified, confidenceScore })
 
-    console.log(verified)
+    if (error) {
+        cleanupTempFiles()
+        throw new ApiError(400, error)
+    }
 
     //Check if the online verification is successfull or not
     if (!verified) {
-        fs.unlinkSync(PANLocalPath)
-        //fs.unlinkSync(AadharLocalPath)
+        cleanupTempFiles()
         throw new ApiError(400, {
             message: "Please ensure that the documents are valid and match the provided information.",
             matchedFields,
@@ -49,10 +140,14 @@ const registerVendor = asyncHandler(async (req, res) => {
     const aadharCloudinary = await uploadOnCloudinary(AadharLocalPath)
 
 
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+    const geocodedCoordinates = hasCoordinates ? null : await geocodeAddress(shopAddress || personalAddress)
+    const coordinates = hasCoordinates ? [Number(longitude), Number(latitude)] : (geocodedCoordinates || [0, 0])
+
     const vendor = await Vendor.create({
         fullname,
-        email,
-        phone,
+        email: normalizedEmail,
+        phone: normalizedPhone,
         avatar: {
             url: "https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg",
             localpath: ""
@@ -62,6 +157,10 @@ const registerVendor = asyncHandler(async (req, res) => {
         address: {
             personalAddress,
             shopAddress
+        },
+        location: {
+            type: "Point",
+            coordinates,
         },
         documents: {
             panCard: {
@@ -77,6 +176,16 @@ const registerVendor = asyncHandler(async (req, res) => {
         isOnlineVerified: true,
         isPhysicalVerified: false,
         isVerified: false
+    })
+
+    const onboardingBaseUrl = process.env.VENDOR_ONBOARDING_BASE_URL || "http://localhost:5174/vendor-onboarding"
+    const onboardingUrl = `${onboardingBaseUrl}/${vendor._id.toString()}`
+
+    await sendMail({
+        from: "autoserve@gmail.com",
+        to: vendor.email,
+        subject: "AutoServe vendor onboarding started",
+        mailgenContent: VendorOnboardingPendingMailGen(vendor.fullname, onboardingUrl),
     })
 
 
@@ -140,16 +249,7 @@ const physicalVerification = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Online verification is pending.");
     }
 
-    const mailOptions = {
-        from: "autoserve@gmail.com",
-        to: vendor.email,
-        subject: "Autoserve Onboarding Status",
-        mailgenContent: VendorApprovalRejectionMailGen(
-            vendor.fullname,
-            status
-        )
-    }
-    sendMail(mailOptions)
+    const vendorLoginUrl = process.env.VENDOR_LOGIN_URL || "http://localhost:5174/vendor-login"
 
     // Handle physical verification result
     if (status === "APPROVED") {
@@ -158,7 +258,21 @@ const physicalVerification = asyncHandler(async (req, res) => {
         vendor.verificationStatus = "APPROVED";
         vendor.remark = remark || "";
         await vendor.save();
+
+        await sendMail({
+            from: "autoserve@gmail.com",
+            to: vendor.email,
+            subject: "AutoServe onboarding approved",
+            mailgenContent: VendorApprovedLoginMailGen(vendor.fullname, vendorLoginUrl),
+        })
     } else if (status === "REJECTED") {
+        await sendMail({
+            from: "autoserve@gmail.com",
+            to: vendor.email,
+            subject: "Autoserve Onboarding Status",
+            mailgenContent: VendorApprovalRejectionMailGen(vendor.fullname, status),
+        })
+
         // If the status is rejected then there is no point of keeping the vendor's data in the DB so just delete it.
         await Vendor.findByIdAndDelete(vendorId);
         return res.json(
@@ -193,11 +307,79 @@ const getSingleVendor = asyncHandler(async (req, res) => {
     )
 })
 
+const loginVendor = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    const vendor = await Vendor.findOne({ email }).select("+password");
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    if (!vendor.password) {
+        throw new ApiError(403, "Vendor account is not activated yet. Contact support.");
+    }
+
+    const isPasswordCorrect = await vendor.isPasswordCorrect(password);
+    if (!isPasswordCorrect) throw new ApiError(401, "Invalid email or password");
+
+    const { accessToken, refreshToken } = await generateVendorRefreshAndAccessToken(vendor._id);
+
+    const safeVendor = await Vendor.findById(vendor._id).select("-password -refreshToken");
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", cookieOption)
+        .clearCookie("refreshToken", cookieOption)
+        .cookie("vendorAccessToken", accessToken, cookieOption)
+        .cookie("vendorRefreshToken", refreshToken, cookieOption)
+        .json(new ApiResponse(200, { vendor: safeVendor }, "Vendor logged in successfully"));
+});
+
+const logoutVendor = asyncHandler(async (req, res) => {
+    const vendor = req.vendor;
+    if (!vendor) throw new ApiError(401, "Unauthorized request");
+
+    vendor.refreshToken = null;
+    await vendor.save({ validateBeforeSave: false });
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", cookieOption)
+        .clearCookie("refreshToken", cookieOption)
+        .clearCookie("vendorAccessToken", cookieOption)
+        .clearCookie("vendorRefreshToken", cookieOption)
+        .json(new ApiResponse(200, {}, "Vendor logged out successfully"));
+});
+
+const getCurrentVendor = asyncHandler(async (req, res) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { vendor: req.vendor }, "Current vendor fetched successfully"));
+});
+
+const activateVendorAccount = asyncHandler(async (req, res) => {
+    const { email, phone, password } = req.body;
+
+    const vendor = await Vendor.findOne({ email, phone });
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    if (!vendor.isVerified) {
+        throw new ApiError(403, "Vendor is not approved yet. Complete verification first.");
+    }
+
+    vendor.password = password;
+    await vendor.save();
+
+    return res.status(200).json(new ApiResponse(200, {}, "Vendor account activated successfully"));
+});
+
 
 
 export {
     registerVendor,
     getAllUnVerifiedVendorsData,
     physicalVerification,
-    getSingleVendor
+    getSingleVendor,
+    loginVendor,
+    logoutVendor,
+    getCurrentVendor,
+    activateVendorAccount,
 }

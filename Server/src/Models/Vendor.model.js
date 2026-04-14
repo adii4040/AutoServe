@@ -1,4 +1,6 @@
 import mongoose, { Schema } from "mongoose";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { ServiceCategoriesEnum } from "../Utils/Constants.js";
 
 const vendorSchema = new Schema({
@@ -95,10 +97,10 @@ const vendorSchema = new Schema({
         default: "AVAILABLE",
     },
 
-    activeBookingId: {
-        type: Schema.Types.ObjectId,
+    activeBookingIds: {
+        type: [Schema.Types.ObjectId],
         ref: "Booking",
-        default: null
+        default: [],
     },
     // Tokens
     refreshToken: String,
@@ -114,5 +116,45 @@ const vendorSchema = new Schema({
 
 // Geo index for location-based search
 vendorSchema.index({ location: "2dsphere" });
+
+vendorSchema.pre("save", async function (next) {
+    if (!this.password || !this.isModified("password")) return next();
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+});
+
+vendorSchema.methods.isPasswordCorrect = async function (password) {
+    if (!this.password) return false;
+    return bcrypt.compare(password, this.password);
+};
+
+vendorSchema.methods.generateAccessToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            role: "VENDOR",
+            email: this.email,
+            shopName: this.shopName,
+            isVerified: this.isVerified,
+        },
+        process.env.ACCESS_TOKEN_SECRET_KEY,
+        {
+            expiresIn: "15m",
+        }
+    );
+};
+
+vendorSchema.methods.generateRefreshToken = function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            role: "VENDOR",
+        },
+        process.env.REFRESH_TOKEN_SECRET_KEY,
+        {
+            expiresIn: "7d",
+        }
+    );
+};
 
 export const Vendor = mongoose.model("Vendor", vendorSchema);

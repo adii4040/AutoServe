@@ -1,22 +1,23 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFetchCurrentUser } from "../hooks/useFetchCurrentUser";
+// import removed: useFetchCurrentVendor deleted
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const { data, isLoading } = useFetchCurrentUser();
+  const queryClient = useQueryClient();
+  const userQuery = useFetchCurrentUser();
+  // vendor logic removed: vendor fetching not needed
 
-  // User object normalized
-  const user = data?.data?.user ?? null;
+  const user = userQuery.data?.data?.user ?? null;
+  const actor = user ? "USER" : null;
+  const profile = user || null;
+  const initialized = userQuery.isSuccess || userQuery.isError;
 
-  // Prevent UI flicker until first auth check completes
-  const [initialized, setInitialized] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setInitialized(true);
-    }
-  }, [isLoading]);
+  const refreshAuth = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+  };
 
   if (!initialized) {
     return (
@@ -27,7 +28,15 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider
+      value={{
+        actor,
+        profile,
+        user,
+        isAuthenticated: Boolean(profile),
+        refreshAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

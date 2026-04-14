@@ -1,5 +1,5 @@
 import stringSimilarity from "string-similarity";
-import { getOCRWorker } from './OCRWorker.utils.js'
+import Tesseract from "tesseract.js";
 
 
 function normalizeText(str) {
@@ -12,10 +12,7 @@ function normalizeText(str) {
 
 export const verifyDocs = async (PANdocURL, PANcheckingData) => {  //AadhardocURL, userAddress
     try {
-        const worker = await getOCRWorker();
-
-        //console.log(PANdocURL, AadhardocURL)
-        const panText = await worker.recognize(PANdocURL);
+        const panText = await Tesseract.recognize(PANdocURL, "eng");
         //const aadharText = await worker.recognize(AadhardocURL);
 
         //console.log(panText.data.text)
@@ -25,8 +22,11 @@ export const verifyDocs = async (PANdocURL, PANcheckingData) => {  //AadhardocUR
         return { verified, confidenceScore, matchedFields }
 
     } catch (err) {
-        console.error(`Error while verifying the docs ${err}`);
-        return { verified: false, error: err.message };
+        console.error(`Error while verifying docs: ${err?.message || err}`);
+        return {
+            verified: false,
+            error: "Unable to read uploaded PAN image. Please upload a clear JPG/PNG image.",
+        };
     }
 }
 

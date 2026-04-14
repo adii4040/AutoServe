@@ -7,20 +7,22 @@ import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { logoutUser } from "../../Services/auth/User.services";
+// import removed: Vendor.services.js deleted
 
 export default function Navbar() {
 
-  const { user } = useContext(AuthContext);
-  const isLoggedIn = !!user;
+  const { user, vendor, actor, isAuthenticated } = useContext(AuthContext);
+  const isLoggedIn = isAuthenticated;
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const logoutMutation = useMutation({
-    mutationFn: logoutUser,
+    mutationFn: actor === 'VENDOR' ? logoutVendor : logoutUser,
     onSuccess: () => {
       queryClient.setQueryData(["currentUser"], null);
-      navigate("/login");
+      queryClient.setQueryData(["currentVendor"], null);
+      navigate(actor === 'VENDOR' ? '/vendor-login' : '/login');
     }
   });
 
@@ -29,7 +31,9 @@ export default function Navbar() {
     { title: "Services", href: "#" },
     { title: "Offers", href: "#" },
     { title: "Contact", href: "#" },
-    ...(isLoggedIn ? [{ title: "Profile", href: "/user-dashboard" }] : []),
+    ...(isLoggedIn
+      ? [{ title: "Profile", href: actor === 'VENDOR' ? '/vendor/dashboard' : '/user-dashboard' }]
+      : []),
   ];
 
   return (

@@ -103,10 +103,48 @@ const VendorApprovalRejectionMailGen = (fullname, status) => {
     };
 };
 
+const VendorOnboardingPendingMailGen = (fullname, onboardingUrl) => {
+    return {
+        body: {
+            name: fullname,
+            intro: "Your online verification is complete. Physical verification is still pending.",
+            action: {
+                instructions: "Use the link below to track your onboarding status:",
+                button: {
+                    color: "#2563eb",
+                    text: "Open Vendor Onboarding Dashboard",
+                    link: onboardingUrl,
+                },
+            },
+            outro: "You will be able to login once physical verification is approved by AutoServe.",
+        },
+    };
+};
+
+const VendorApprovedLoginMailGen = (fullname, vendorLoginUrl) => {
+    return {
+        body: {
+            name: fullname,
+            intro: "Great news! Your physical verification is completed and your vendor account is approved.",
+            action: {
+                instructions: "You can now login to your vendor dashboard:",
+                button: {
+                    color: "#16a34a",
+                    text: "Login to Vendor Dashboard",
+                    link: vendorLoginUrl,
+                },
+            },
+            outro: "If you face any issue, reply to this email and our team will help you.",
+        },
+    };
+};
+
 
 export {
     sendMail,
     emailVerificationMailGen,
     forgotPasswordReqMailGen,
-    VendorApprovalRejectionMailGen
+    VendorApprovalRejectionMailGen,
+    VendorOnboardingPendingMailGen,
+    VendorApprovedLoginMailGen,
 }

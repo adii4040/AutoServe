@@ -1,7 +1,10 @@
+const isProduction = process.env.NODE_ENV === "production"
 
 const cookieOption = {
     httpOnly: true,
-    secure: true
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
 }
 
 const ServiceCategoriesEnum = [

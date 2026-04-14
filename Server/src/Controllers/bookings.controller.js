@@ -1,502 +1,160 @@
-import { Booking } from '../Models/Booking.model.js'
-import { Vendor } from '../Models/Vendor.model.js'
-import { asyncHandler, ApiError, ApiResponse, uploadOnCloudinary, sendMail, emailVerificationMailGen, forgotPasswordReqMailGen, cookieOption, } from '../Utils/index.js'
-import { BookingStateEnum } from '../Utils/Constants.js'
-
-
-/*------------------- CREATE BOOKING ------------------*/
+// Add this at the top if not present
+const rejectBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.rejectBooking(req.vendor, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking rejected successfully"));
+});
+import { ApiResponse } from "../Utils/ApiResponse.utils.js";
+import { asyncHandler } from "../Utils/asyncHandler.js";
+import * as bookingService from "../Services/booking.service.js";
 
 const createBooking = asyncHandler(async (req, res) => {
-    const {
-        serviceCategory,
-        problemDescription,
-        vehicleType,
-        brand,
-        model,
-        coordinates,
-        formattedAddress,
-        landmark,
-        city,
-        state,
-        pincode
-    } = req.body;
-
-    const userId = req.user._id;
-
-    const ongoingBooking = await Booking.findOne({
-        userId, bookingState: {
-            $in: [
-                "CREATED",
-                "DISPATCHING",
-                "VENDOR_ASSIGNED",
-                "INSPECTION_IN_PROGRESS",
-                "WAITING_FOR_USER_APPROVAL",
-                "SERVICE_IN_PROGRESS"
-            ]
-        }
-    });
-
-    if (ongoingBooking) {
-        throw new ApiError(400, "You have an ongoing booking. Please complete or cancel it before creating a new one.");
-    }
-
-    const newBooking = await Booking.create({
-        userId,
-        vendorId: null,
-        requestedServiceCategories: serviceCategory,
-        problemDescription,
-        vehicleInfo: {
-            vehicleType,
-            brand,
-            model,
-        },
-        serviceLocation: {
-            type: "Point",
-            coordinates,
-            serviceAddress: {
-                formattedAddress,
-                landmark,
-                city,
-                state,
-                pincode
-            }
-        },
-        bookingState: BookingStateEnum[0],
-        dispatchRadiusKm: 5,
-        stateHistory: [{
-            state: BookingStateEnum[0],
-            changedBy: "USER",
-            reason: "Booking created",
-            timestamp: new Date()
-        }],
-    });
-
-    dispatchBooking(newBooking._id)
-        .catch((err) => {
-            console.error(`Error dispatching booking ${newBooking._id}:`, err);
-        });
+    const booking = await bookingService.createBooking(req.user._id, req.body);
 
     return res.status(201).json(
         new ApiResponse(
             201,
             {
-                bookingDetails: {
-                    bookingId: newBooking._id,
-                    bookingState: newBooking.bookingState,
-                    createdAt: newBooking.createdAt
-                }
+                booking: {
+                    _id: booking._id,
+                    bookingState: booking.bookingState,
+                    requestedServiceCategories: booking.requestedServiceCategories,
+                    createdAt: booking.createdAt,
+                },
             },
             "Booking created successfully"
         )
-    )
-
-
-})
-
-/*------------------- DISPATCHING ------------------*/
-
-async function dispatchBooking(bookingId) {
-    const booking = await Booking.findOneAndUpdate(
-        { _id: bookingId, bookingState: "CREATED" },
-        {
-            $set: { bookingState: "DISPATCHING" },
-            $push: { stateHistory: { state: "DISPATCHING", changedBy: "SYSTEM" } }
-        },
-        { new: true }
     );
+});
 
-    if (!booking) return;
+const getMyBookings = asyncHandler(async (req, res) => {
+    const bookings = await bookingService.getMyBookings(req.user._id);
+    return res.status(200).json(new ApiResponse(200, { bookings }, "Bookings fetched successfully"));
+});
 
-    const vendors = await findEligibleVendors(booking);
-    const ranked = await rankVendors(vendors, booking);
-    const batches = createVendorBatches(ranked.map(v => v._id), 3);
+const getBookingDetail = asyncHandler(async (req, res) => {
+    const booking = await bookingService.getBookingDetail(req.user._id, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking fetched successfully"));
+});
 
-    await Booking.findByIdAndUpdate(bookingId, {
-        dispatchMeta: {
-            vendorBatches: batches,
-            currentBatchIndex: 0,
-            lastDispatchAt: new Date()
-        }
-    });
-
-    sendBatch(bookingId);
-}
-
-async function findEligibleVendors(booking) {
-
-    const { coordinates } = booking.serviceLocation;
-    const radiusMeter = booking.dispatchRadiusKm * 1000; // convert km to meters
-
-    if (
-        !Array.isArray(booking.serviceLocation.coordinates) ||
-        booking.serviceLocation.coordinates.length !== 2
-    ) {
-        throw new Error("Invalid booking coordinates");
-    }
-
-
-    const vendors = await Vendor.find({
-        isVerified: true,
-        availablityStatus: "AVAILABLE",
-        serviceCategories: { $in: booking.requestedServiceCategories },
-        activeBookingId: null,
-        location: {
-            $nearSphere: {
-                $geometry: {
-                    type: "Point",
-                    coordinates
-                },
-                $maxDistance: radiusMeter
-            }
-        }
-    }).limit(10); // limit to top 10 nearest vendors
-
-    if (!vendors || vendors.length === 0) {
-        return [];
-    };
-    return vendors;
-}
-
-async function rankVendors(eligibleVendors, booking) {
-    const BAYESIAN_K = 1;
-
-    if (!eligibleVendors || eligibleVendors.length === 0) return [];
-
-    const vendorIds = eligibleVendors.map(v => v._id);
-
-    const rankedVendors = await Vendor.aggregate([
-        /* -------- LIMIT TO ELIGIBLE VENDORS BY MATCHING THE ELIGIBLE VENDORS IDs -------- */
-        {
-            $match: {
-                _id: { $in: vendorIds }
-            }
-        },
-
-        /* -------- JOIN WITH VENDOR_BEHAVIORS COLLECTION -------- */
-        {
-            $lookup: {
-                from: "vendorbehaviours",
-                localField: "_id",
-                foreignField: "vendorId",
-                as: "behaviour"
-            }
-        },
-        {
-            $unwind: {
-                path: "$behaviour",
-                preserveNullAndEmptyArrays: true
-            }
-        },
-
-        /* -------- DISTANCE CALCULATION -------- */
-        {
-            $addFields: {
-                distanceKm: {
-                    $divide: [
-                        {
-                            $sqrt: {
-                                $add: [
-                                    { $pow: [{ $subtract: ["$location.coordinates.0", booking.serviceLocation.coordinates[0]] }, 2] },
-                                    { $pow: [{ $subtract: ["$location.coordinates.1", booking.serviceLocation.coordinates[1]] }, 2] }
-                                ]
-                            }
-                        },
-                        1
-                    ]
-                }
-            }
-        },
-
-        /* -------- METRIC COMPUTATION -------- */
-        {
-            $addFields: {
-                acceptanceRate: {
-                    $cond: [
-                        { $gt: ["$behaviour.total_requests_received", 0] },
-                        {
-                            $divide: [
-                                { $add: ["$behaviour.total_requests_accepted", BAYESIAN_K] },
-                                { $add: ["$behaviour.total_requests_received", 2 * BAYESIAN_K] }
-                            ]
-                        },
-                        0.5
-                    ]
-                },
-
-                ratingScore: {
-                    $cond: [
-                        { $gte: ["$behaviour.rating_count", 5] },
-                        {
-                            $divide: ["$behaviour.rating_sum", "$behaviour.rating_count"]
-                        },
-                        4.0
-                    ]
-                },
-
-                experienceScore: {
-                    $log10: {
-                        $add: ["$behaviour.total_services_completed", 1]
-                    }
-                },
-
-                noShowRate: {
-                    $cond: [
-                        { $gte: ["$behaviour.total_requests_accepted", 3] },
-                        {
-                            $divide: [
-                                "$behaviour.total_requests_no_show",
-                                "$behaviour.total_requests_accepted"
-                            ]
-                        },
-                        0
-                    ]
-                },
-
-                distanceScore: {
-                    $divide: [1, { $add: ["$distanceKm", 1] }]
-                }
-            }
-        },
-
-        /* -------- FINAL VENDOR SCORE -------- */
-        {
-            $addFields: {
-                vendorScore: {
-                    $subtract: [
-                        {
-                            $add: [
-                                { $multiply: ["$acceptanceRate", 0.30] },
-                                { $multiply: [{ $divide: ["$ratingScore", 5] }, 0.25] },
-                                { $multiply: ["$distanceScore", 0.20] },
-                                { $multiply: ["$experienceScore", 0.15] }
-                            ]
-                        },
-                        { $multiply: ["$noShowRate", 0.40] }
-                    ]
-                }
-            }
-        },
-
-        /* -------- SORT BY SCORE -------- */
-        {
-            $sort: { vendorScore: -1 }
-        }
-    ]);
-
-    return rankedVendors;
-}
-
-async function sendBatch(bookingId) {
-    const booking = await Booking.findById(bookingId);
-    if (!booking || booking.vendorId) return;
-
-    const batch = booking.dispatchMeta.vendorBatches[
-        booking.dispatchMeta.currentBatchIndex
-    ];
-
-    if (!batch) return expandRadiusAndRestart(booking);
-
-    console.log("Dispatching to vendors:", batch);
-
-    setTimeout(() => checkBatchResult(bookingId), 30000);
-}
-
-async function checkBatchResult(bookingId) {
-    const booking = await Booking.findById(bookingId);
-    if (!booking || booking.vendorId) return;
-
-    await Booking.findByIdAndUpdate(bookingId, {
-        $inc: { "dispatchMeta.currentBatchIndex": 1 },
-        $set: { "dispatchMeta.lastDispatchAt": new Date() }
-    });
-
-    sendBatch(bookingId);
-}
-
-async function expandRadiusAndRestart(booking) {
-    const newRadius = booking.dispatchRadiusKm + 5;
-    await Booking.findByIdAndUpdate(booking._id, {
-        dispatchRadiusKm: newRadius,
-        dispatchMeta: {
-            vendorBatches: [],
-            currentBatchIndex: 0,
-            lastDispatchAt: null
-        }
-    });
-    dispatchBooking(booking._id);
-}
-
-
-/* --------------------VENDOR ACCEPTANCE API-------------------------- */
-
-// ZOD: bookingId param validation
 const acceptBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.acceptBooking(req.vendor, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking accepted successfully"));
+});
 
-    const { bookingId } = req.params;
-    const vendorId = req.vendor._id;
+const markVendorEnRoute = asyncHandler(async (req, res) => {
+    const booking = await bookingService.markVendorEnRoute(req.vendor._id, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Vendor marked as en-route"));
+});
 
-    const booking = await Booking.findOneAndUpdate(
-        {
-            _id: bookingId,
-            bookingState: "DISPATCHING",
-            vendorId: null
-        },
-        {
-            $set: {
-                vendorId: vendorId,
-                bookingState: "VENDOR_ASSIGNED"
+const updateLiveLocation = asyncHandler(async (req, res) => {
+    const booking = await bookingService.updateLiveLocation(req.vendor._id, req.params.id, req.body);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                bookingId: booking._id,
+                liveTracking: booking.liveTracking,
             },
-            $push: {
-                stateHistory: {
-                    state: "VENDOR_ASSIGNED",
-                    changedBy: "VENDOR"
-                }
-            }
-        },
-        { new: true }
-    );
-
-    if (!booking) {
-        throw new ApiError(409, "Booking already taken");
-    }
-
-    return res.json(
-        new ApiResponse(200, booking, "Booking accepted")
+            "Live location updated successfully"
+        )
     );
 });
 
-// ZOD: diagnosisValidation
+const markVendorArrived = asyncHandler(async (req, res) => {
+    const booking = await bookingService.markVendorArrived(req.vendor._id, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Vendor marked as arrived"));
+});
+
 const submitDiagnosis = asyncHandler(async (req, res) => {
-    const booking = await Booking.findOne({
-        _id: req.params.id,
-        vendorId: req.vendor._id,
-        bookingState: "INSPECTION_IN_PROGRESS"
-    });
-
-    if (!booking) {
-        throw new ApiError(404, "Invalid booking state");
-    }
-
-    const suggestedServices = [];
-
-    for (const s of req.body.services) {
-        if (s.serviceId) {
-            const serviceExists = await Service.findById(s.serviceId);
-            if (!serviceExists) {
-                throw new ApiError(400, "Invalid service selected");
-            }
-            suggestedServices.push({
-                serviceId: s.serviceId,
-                vendorQuotedPrice: s.quotedPrice
-            });
-        } else {
-            // custom service
-            suggestedServices.push({
-                serviceId: null,
-                customServiceName: s.customServiceName,
-                vendorQuotedPrice: s.quotedPrice
-            });
-        }
-    }
-
-    booking.diagnosis = {
-        issues: req.body.issues,
-        suggestedServices
-    };
-
-    booking.bookingState = "WAITING_FOR_USER_APPROVAL";
-    booking.stateHistory.push({
-        state: "WAITING_FOR_USER_APPROVAL",
-        changedBy: "VENDOR"
-    });
-
-    await booking.save();
-
-    return res.json(
-        new ApiResponse(200, booking, "Diagnosis submitted")
-    );
+    const booking = await bookingService.submitDiagnosis(req.vendor._id, req.params.id, req.body);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Diagnosis submitted successfully"));
 });
 
-// ZOD: approvalValidation
 const approveServices = asyncHandler(async (req, res) => {
-    const booking = await Booking.findOne({
-        _id: req.params.id,
-        userId: req.user._id,
-        bookingState: "WAITING_FOR_USER_APPROVAL"
+    const booking = await bookingService.approveServices(req.user._id, req.params.id, req.body);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Services approved successfully"));
+});
+
+const completeService = asyncHandler(async (req, res) => {
+    const booking = await bookingService.completeService(req.vendor._id, req.params.id, req.body);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Service marked as completed"));
+});
+
+const cancelBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.cancelBooking({
+        reqUser: req.user,
+        reqVendor: req.vendor || null,
+        bookingId: req.params.id,
     });
 
-    if (!booking) {
-        throw new ApiError(404, "Invalid booking state");
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking cancelled successfully"));
+});
+
+const getLiveTracking = asyncHandler(async (req, res) => {
+    // Deprecated fallback endpoint: prefer socket-based /tracking namespace for real-time updates.
+    const booking = await bookingService.getLiveTracking(req.user._id, req.params.id);
+
+    if (!booking.liveTracking?.isEnabled) {
+        return res.status(200).json(
+            new ApiResponse(200, null, "Live tracking is not active for this booking")
+        );
     }
 
-    const finalServices = req.body.approvedIndexes.map(idx => {
-        const svc = booking.diagnosis.suggestedServices[idx];
-        if (!svc) throw new ApiError(400, "Invalid service index");
-
-        return {
-            serviceId: svc.serviceId ?? null,
-            customServiceName: svc.customServiceName ?? null,
-            finalPrice: svc.vendorQuotedPrice
-        };
-    });
-
-    booking.serviceExecution = {
-        startedAt: new Date(),
-        finalServices
-    };
-
-    booking.userApproval = {
-        approvedIndexes: req.body.approvedIndexes,
-        rejectedIndexes: req.body.rejectedIndexes,
-        decisionAt: new Date()
-    };
-
-    booking.bookingState = "SERVICE_IN_PROGRESS";
-    booking.stateHistory.push({
-        state: "SERVICE_IN_PROGRESS",
-        changedBy: "USER"
-    });
-
-    await booking.save();
-
-    return res.json(
-        new ApiResponse(200, booking, "Services approved")
-    );
-});
-
-// ZOD: cancelValidation
-const cancelBooking = asyncHandler(async (req, res) => {
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) throw new ApiError(404, "Booking not found");
-
-    booking.bookingState = "CANCELLED";
-    booking.cancellation = {
-        cancelledBy: req.body.by,
-        reason: req.body.reason,
-        cancelledAt: new Date()
-    };
-
-    booking.stateHistory.push({
-        state: "CANCELLED",
-        changedBy: req.body.by
-    });
-
-    await booking.save();
-
-    return res.json(
-        new ApiResponse(200, booking, "Booking cancelled")
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                bookingId: booking._id,
+                bookingState: booking.bookingState,
+                vendorId: booking.vendorId,
+                serviceLocation: booking.serviceLocation,
+                liveTracking: booking.liveTracking,
+            },
+            "Live tracking fetched successfully"
+        )
     );
 });
 
 
+const getVendorMyBookings = asyncHandler(async (req, res) => {
+    const bookings = await bookingService.getVendorMyBookings(req.vendor._id);
+    return res.status(200).json(new ApiResponse(200, { bookings }, "Vendor bookings fetched successfully"));
+});
 
+// New: Requested bookings (vendor is eligible to accept)
+const getVendorRequestedBookings = asyncHandler(async (req, res) => {
+    const bookings = await bookingService.getVendorRequestedBookings(req.vendor._id);
+    // Only send minimal info
+    return res.status(200).json(new ApiResponse(200, { bookings }, "Vendor requested bookings fetched successfully"));
+});
 
+const getVendorBookingDetail = asyncHandler(async (req, res) => {
+    const booking = await bookingService.getVendorBookingDetail(req.vendor._id, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Vendor booking detail fetched successfully"));
+});
 
+const findNearbyVendors = asyncHandler(async (req, res) => {
+    const vendors = await bookingService.findNearbyVendors(req.query);
+    return res.status(200).json(new ApiResponse(200, { vendors }, "Nearby vendors fetched successfully"));
+});
 
 export {
     createBooking,
+    getMyBookings,
+    getBookingDetail,
     acceptBooking,
+    markVendorEnRoute,
+    updateLiveLocation,
+    markVendorArrived,
     submitDiagnosis,
     approveServices,
+    completeService,
     cancelBooking,
-}
+    getLiveTracking,
+    getVendorMyBookings,
+    getVendorRequestedBookings,
+    getVendorBookingDetail,
+    findNearbyVendors,
+    rejectBooking,
+};
