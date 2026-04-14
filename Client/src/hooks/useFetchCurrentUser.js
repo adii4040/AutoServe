@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchCurrentUser } from "../Services/auth/User.services";
 
-const useFetchCurrentUser = () => {
+const useFetchCurrentUser = ({ enabled = true } = {}) => {
   return useQuery({
     queryKey: ["currentUser"],
     queryFn: fetchCurrentUser,
+    enabled,
     retry: false,
     staleTime: 0,
     refetchInterval: (data) => {

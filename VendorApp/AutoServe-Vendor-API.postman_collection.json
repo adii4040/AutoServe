@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "AutoServe Vendor API",
+    "description": "API endpoints for VendorApp",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8002/api/v1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Vendor Auth",
+      "item": [
+        {
+          "name": "Vendor Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/vendor/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Current Vendor",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/vendor/@me",
+            "header": []
+          }
+        },
+        {
+          "name": "Vendor Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/vendor/logout",
+            "header": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor Profile",
+      "item": [
+        {
+          "name": "Get Vendor Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/vendor/profile",
+            "header": []
+          }
+        },
+        {
+          "name": "Update Vendor Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/vendor/profile",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopName\": \"Updated Shop Name\",\n  \"phone\": \"+91-9999999999\",\n  \"city\": \"Mumbai\",\n  \"description\": \"Professional service provider\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Get Vendor Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/bookings/vendor",
+            "header": []
+          }
+        },
+        {
+          "name": "Accept Booking",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/bookings/:bookingId/accept",
+            "header": []
+          }
+        },
+        {
+          "name": "Reject Booking",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/bookings/:bookingId/reject",
+            "header": []
+          }
+        }
+      ]
+    }
+  ]
+}

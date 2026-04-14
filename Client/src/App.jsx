@@ -1,5 +1,7 @@
-import React, { use, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Layout from './Layout';
 import Home from './Pages/Home';
 import MyJobs from './Pages/MyJobs';
@@ -9,25 +11,9 @@ import MyBookings from './Pages/MyBookings';
 import InspectionDetail from './Pages/InspectionDetail';
 import Login from './components/Authentication/login';
 import Signup from './components/Authentication/signup';
-import VendorSignup from './components/Authentication/Vendorsignup';
-import VendorDashboardLayout from './Vendordashboard/layout';
-import VendorUserDashboard from './Vendordashboard/pages/Dashboard';
-import VendorBookings from './Vendordashboard/pages/Bookings';
-import VendorProfile from './Vendordashboard/pages/Profile';
-import VendorDocuments from './Vendordashboard/pages/document';
-import EmployeeVendorVerification from './Employee/Employee/pages/employee_vendor_verification';
-import { AuthContext } from './context/AuthContext';
-
-// Simple Protected Route for authenticated users only
-function ProtectedRoute({ children }) {
-  const { user } = useContext(AuthContext);
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return children;
-}
+import ProtectedRoute from './components/ProtectedRoute';
+import BookService from './Pages/BookService';
+import BookingDetail from './Pages/BookingDetail';
 
 function App() {
 
@@ -38,34 +24,38 @@ function App() {
         <Route path='/' element={<Home />} />
         <Route path='/home' element={<Home />} />
         
+        {/* Book Service Route */}
+        <Route path="/bookservice" element={<BookService />} />
+        {/* Booking Detail Route */}
+        <Route path="/booking/:bookingId" element={<BookingDetail />} />
         {/* Protected User Routes - Require Login */}
         <Route path="/dashboard" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <UserDashboard />
           </ProtectedRoute>
         } />
         <Route path="/user-dashboard" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <UserDashboard />
           </ProtectedRoute>
         } />
         <Route path="/update-profile" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <UpdateProfile />
           </ProtectedRoute>
         } />
         <Route path="/my-bookings" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <MyBookings />
           </ProtectedRoute>
         } />
         <Route path="/my-jobs" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <MyJobs />
           </ProtectedRoute>
         } />
         <Route path="/inspection-detail" element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedActor="USER">
             <InspectionDetail />
           </ProtectedRoute>
         } />
@@ -73,19 +63,12 @@ function App() {
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/vendor-signup" element={<VendorSignup />} />
+        {/* Vendor signup/login routes removed */}
         
-        {/* Employee Routes */}
-        <Route path="/employee/vendor-verification" element={<EmployeeVendorVerification />} />
+        {/* Employee routes removed */}
       </Route>
 
-      {/* Vendor Dashboard Routes */}
-      <Route path='/vendor' element={<VendorDashboardLayout />}>
-        <Route path='dashboard' element={<VendorUserDashboard />} />
-        <Route path='bookings' element={<VendorBookings />} />
-        <Route path='documents' element={<VendorDocuments />} />
-        <Route path='profile' element={<VendorProfile />} />
-      </Route>
+      {/* Vendor dashboard routes removed */}
     </Routes>
   );
 }

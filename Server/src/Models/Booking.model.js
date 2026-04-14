@@ -164,7 +164,7 @@ const bookingSchema = new Schema({
                 serviceId: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: "Service",
-                    required: true,
+                    default: null,
                 },
 
                 customServiceName: {
@@ -176,6 +176,55 @@ const bookingSchema = new Schema({
                     type: Number,
                     min: 0,
                     required: true,
+                },
+            },
+        ],
+    },
+
+    /* -------- LIVE LOCATION TRACKING -------- */
+
+    liveTracking: {
+        isEnabled: {
+            type: Boolean,
+            default: false,
+        },
+        vendorCurrentLocation: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [lng, lat]
+                default: [0, 0],
+            },
+            updatedAt: {
+                type: Date,
+                default: null,
+            },
+        },
+        etaMinutes: {
+            type: Number,
+            default: null,
+        },
+        distanceKm: {
+            type: Number,
+            default: null,
+        },
+        locationHistory: [
+            {
+                coordinates: {
+                    type: [Number],
+                    required: true,
+                },
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                source: {
+                    type: String,
+                    enum: ["GPS", "NETWORK", "MANUAL"],
+                    default: "GPS",
                 },
             },
         ],
@@ -216,6 +265,36 @@ const bookingSchema = new Schema({
                 enum: PaymentModeEnum,
             },
             paidAt: Date,
+        },
+    },
+
+    payment: {
+        orderId: {
+            type: String,
+            default: null,
+            index: true,
+        },
+        paymentId: {
+            type: String,
+            default: null,
+            index: true,
+        },
+        signature: {
+            type: String,
+            default: null,
+        },
+        status: {
+            type: String,
+            enum: ["CREATED", "PAID", "FAILED"],
+            default: "CREATED",
+        },
+        amount: {
+            type: Number,
+            default: 0,
+        },
+        paidAt: {
+            type: Date,
+            default: null,
         },
     },
 

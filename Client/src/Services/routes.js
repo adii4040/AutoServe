@@ -10,12 +10,13 @@ const resendVerificationUrl = '/api/v1/user/resend-email-verification'
 const requestForgotPasswordUrl = '/api/v1/user/request-forgot-password'
 const updateUserUrl = (id) => `/api/v1/user/${id}/update`
 
+/*------Bookings-------*/
+const myBookingsUrl = '/api/v1/bookings/my-bookings'
+const bookingDetailUrl = (id) => `/api/v1/bookings/${id}`
+const createBookingUrl = '/api/v1/bookings'
 
-/*-----Vendor------*/
 
-const registerVendorUrl = "/api/v1/vendor/register"
-const getAllUnVerifiedVendorsDataUrl = "/api/v1/vendor/get-unverified-vendors"
-//const physicalVerificationUrl = "/api/v1/vendor/:vendorId/physical-verification"
+
 
 
 
@@ -31,10 +32,11 @@ export {
     resendVerificationUrl,
     requestForgotPasswordUrl,
     updateUserUrl,
+    myBookingsUrl,
+    bookingDetailUrl,
+    createBookingUrl,
 
-
-    registerVendorUrl,
-    getAllUnVerifiedVendorsDataUrl
+    // getAllUnVerifiedVendorsDataUrl (removed, not defined)
 
 
 }

@@ -1,0 +1,140 @@
+.onboarding-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(120deg, #eff5ff, #eefaf7);
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 760px;
+  background: #fff;
+  border: 1px solid #d8e3f2;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(20, 42, 74, 0.12);
+}
+
+.onboarding-card h1 {
+  margin: 0;
+  color: #17243f;
+}
+
+.subtitle {
+  color: #556483;
+  margin: 8px 0 18px;
+}
+
+.status-box {
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.status-box h3 {
+  margin: 0 0 6px;
+}
+
+.online-verified {
+  background: #e8f7ee;
+  border: 1px solid #9fd8b2;
+}
+
+.pending {
+  background: #fff8e8;
+  border: 1px solid #f0d9a6;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.meta-grid div {
+  border: 1px solid #e4eaf5;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.meta-grid span {
+  display: block;
+  color: #6a7894;
+  font-size: 12px;
+}
+
+.meta-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #1d2b49;
+}
+
+.helper-text {
+  margin-top: 14px;
+  color: #5c6b89;
+}
+
+.activation-form {
+  margin-top: 18px;
+  border: 1px solid #d8e3f2;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f9fbff;
+}
+
+.activation-form h3 {
+  margin: 0 0 8px;
+  color: #1c2a48;
+}
+
+.activation-form label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  color: #4c5e82;
+  font-size: 13px;
+}
+
+.activation-form input {
+  width: 100%;
+  border: 1px solid #c9d6ec;
+  border-radius: 8px;
+  padding: 10px 11px;
+}
+
+.activate-btn {
+  margin-top: 12px;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.activate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: #be123c;
+}
+
+.footer-links {
+  margin-top: 16px;
+}
+
+.footer-links a {
+  color: #315ad8;
+}
+
+@media (max-width: 768px) {
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -205,10 +205,10 @@ function Login() {
             <p className="text-sm text-gray-600 mt-2">
               Are you a service provider?{' '}
               <Link 
-                to="/vendor-signup" 
+                to="/vendor-login" 
                 className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline transition-colors"
               >
-                Register as Vendor
+                Login as Vendor
               </Link>
             </p>
           </div>

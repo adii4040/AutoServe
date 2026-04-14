@@ -1,0 +1,375 @@
+{
+  "info": {
+    "name": "AutoServe API",
+    "description": "Collection for user, vendor, booking, and dual-payment workflows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8002/api/v1" },
+    { "key": "userToken", "value": "" },
+    { "key": "vendorToken", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "vendorId", "value": "" },
+    { "key": "inspectionOrderId", "value": "" },
+    { "key": "serviceOrderId", "value": "" },
+    { "key": "inspectionPaymentId", "value": "" },
+    { "key": "servicePaymentId", "value": "" },
+    { "key": "inspectionSignature", "value": "" },
+    { "key": "serviceSignature", "value": "" },
+    { "key": "lat", "value": "19.0760" },
+    { "key": "lng", "value": "72.8777" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Healthcheck",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/healthcheck",
+              "host": ["{{baseUrl}}"],
+              "path": ["healthcheck"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"Test User\",\n  \"email\": \"test.user@example.com\",\n  \"phone\": \"9876543210\",\n  \"address\": \"Andheri West, Mumbai\",\n  \"password\": \"Aa@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test.user@example.com\",\n  \"password\": \"Aa@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor Auth",
+      "item": [
+        {
+          "name": "Login Vendor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"Aa@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vendor/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["vendor", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Booking Workflow",
+      "item": [
+        {
+          "name": "Find Nearby Vendors",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/nearby-vendors?lng={{lng}}&lat={{lat}}&radiusKm=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "nearby-vendors"],
+              "query": [
+                { "key": "lng", "value": "{{lng}}" },
+                { "key": "lat", "value": "{{lat}}" },
+                { "key": "radiusKm", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceCategory\": [\"Mechanical Service\"],\n  \"problemDescription\": \"Engine noise and oil leak\",\n  \"vehicleType\": \"Car\",\n  \"brand\": \"Hyundai\",\n  \"model\": \"i20\",\n  \"coordinates\": [72.8777, 19.0760],\n  \"formattedAddress\": \"Andheri West, Mumbai\",\n  \"landmark\": \"Near Metro Station\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pincode\": \"400053\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            }
+          }
+        },
+        {
+          "name": "Vendor Accept Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Vendor En Route",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/en-route",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "en-route"]
+            }
+          }
+        },
+        {
+          "name": "Vendor Update Live Location",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coordinates\": [72.8780, 19.0762],\n  \"source\": \"GPS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/live-location",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "live-location"]
+            }
+          }
+        },
+        {
+          "name": "Vendor Arrived",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/arrived",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "arrived"]
+            }
+          }
+        },
+        {
+          "name": "Vendor Submit Diagnosis",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"issues\": [\"Brake pads worn out\"],\n  \"services\": [\n    {\n      \"customServiceName\": \"Brake pad replacement\",\n      \"quotedPrice\": 1800\n    },\n    {\n      \"customServiceName\": \"Wheel alignment\",\n      \"quotedPrice\": 700\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/diagnosis",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "diagnosis"]
+            }
+          }
+        },
+        {
+          "name": "User Approve Services",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approvedIndexes\": [0, 1],\n  \"rejectedIndexes\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/approve-services",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "approve-services"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dual Payment Workflow",
+      "item": [
+        {
+          "name": "Create Inspection Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"paymentType\": \"inspection\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "create-order"]
+            }
+          }
+        },
+        {
+          "name": "Verify Inspection Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"paymentType\": \"inspection\",\n  \"razorpay_order_id\": \"{{inspectionOrderId}}\",\n  \"razorpay_payment_id\": \"{{inspectionPaymentId}}\",\n  \"razorpay_signature\": \"{{inspectionSignature}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Create Service Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"paymentType\": \"service\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "create-order"]
+            }
+          }
+        },
+        {
+          "name": "Verify Service Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"paymentType\": \"service\",\n  \"razorpay_order_id\": \"{{serviceOrderId}}\",\n  \"razorpay_payment_id\": \"{{servicePaymentId}}\",\n  \"razorpay_signature\": \"{{serviceSignature}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor Complete Booking",
+      "item": [
+        {
+          "name": "Complete Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{vendorToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspectionAmount\": 399,\n  \"serviceAmount\": 2500,\n  \"paymentMode\": \"UPI\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "complete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhook",
+      "item": [
+        {
+          "name": "Razorpay Webhook (Captured)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-razorpay-signature", "value": "<computed-signature-on-raw-body>" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment.captured\",\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_123\",\n        \"order_id\": \"order_123\",\n        \"amount\": 39900\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "webhook"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

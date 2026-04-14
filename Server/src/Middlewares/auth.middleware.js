@@ -9,6 +9,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         if(!accessToken) throw new ApiError(401,"UnAuthorized request!! No token provided")
 
         const decodedtUserData = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_KEY)
+        if (decodedtUserData.role !== "USER") throw new ApiError(401, "Invalid user token")
         
         const userData = await User.findById(decodedtUserData._id).select("-password -refreshToken -emailVerificationToken -emailVerificationTokenExpiry")
         if(!userData) throw new ApiError(401, 'Invalid Access Token')

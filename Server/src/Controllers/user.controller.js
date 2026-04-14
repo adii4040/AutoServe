@@ -1,5 +1,6 @@
 import User from '../Models/User.model.js'
 import { asyncHandler, ApiError, ApiResponse, uploadOnCloudinary, sendMail, emailVerificationMailGen, forgotPasswordReqMailGen, cookieOption, } from '../Utils/index.js'
+import { logger } from '../Utils/logger.js'
 
 
 
@@ -16,7 +17,10 @@ const generateRefreshAndAccessToken = async (userId) => {
 
         return { accessToken, refreshToken }
     } catch (error) {
-        console.log(500, "Something went wrong while generating the refresh and access token")
+        logger.error("generateRefreshAndAccessToken failed", {
+            userId,
+            error: error?.message || error,
+        })
     }
 }
 
@@ -94,6 +98,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
+        .clearCookie("vendorAccessToken", cookieOption)
+        .clearCookie("vendorRefreshToken", cookieOption)
         .cookie("accessToken", accessToken, cookieOption)
         .cookie("refreshToken", refreshToken, cookieOption)
         .json(
@@ -116,6 +122,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     return res.status(200)
         .clearCookie("accessToken", cookieOption)
         .clearCookie("refreshToken", cookieOption)
+        .clearCookie("vendorAccessToken", cookieOption)
+        .clearCookie("vendorRefreshToken", cookieOption)
         .json(
             new ApiResponse(200, {}, "User loged out successfully!!")
         )
@@ -274,7 +282,7 @@ const resetCurrentPassword = asyncHandler(async (req, res) => {
 
 const updateUser = asyncHandler(async (req, res) => {
     const { id } = req.params
-    console.log(id, req.user._id.toString())
+    logger.info("updateUser request", { requestedId: id, userId: req.user._id.toString() })
     if (id !== req.user._id.toString()) throw new ApiError(403, "Unauthorized request!!")
 
     const { fullname, email, address } = req.body
