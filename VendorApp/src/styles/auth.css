@@ -3,73 +3,47 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0066cc 0%, #00d9ff 100%);
-  padding: 20px;
+  padding: 24px;
 }
 
 .auth-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  padding: 40px;
   width: 100%;
-  max-width: 400px;
+  width: 100%;
+  max-width: 460px;
+  padding: 32px;
 }
 
 .auth-card h1 {
   text-align: center;
-  color: #0066cc;
-  margin-bottom: 10px;
+  color: var(--color-primary-strong);
+  margin: 14px 0 8px;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  letter-spacing: -0.04em;
 }
 
 .auth-card .subtitle {
   text-align: center;
-  color: #666;
-  margin-bottom: 30px;
-  font-size: 14px;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+  font-size: 0.96rem;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.auth-card form {
+  display: grid;
+  gap: 16px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #333;
-  font-size: 14px;
-}
-
-.form-group input {
+.login-btn {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.3s;
-}
-
-.form-group input:focus {
-  border-color: #0066cc;
-  outline: none;
+  margin-top: 6px;
 }
 
 .auth-card .btn-primary {
-  width: 100%;
-  padding: 12px;
-  background-color: #0066cc;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 15px;
 }
 
 .auth-card .btn-primary:hover:not(:disabled) {
-  background-color: #0052a3;
+  background-color: var(--color-primary-strong);
 }
 
 .auth-card .btn-primary:disabled {
@@ -77,19 +51,22 @@
   cursor: not-allowed;
 }
 
-.error-message {
-  background-color: #ffe6e6;
-  color: #dc3545;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  border-left: 4px solid #dc3545;
-}
-
+.register-link,
 .footer-text {
   text-align: center;
   margin-top: 20px;
-  color: #666;
-  font-size: 14px;
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+}
+
+.register-link a,
+.footer-text a {
+  color: var(--color-primary-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.register-link a:hover,
+.footer-text a:hover {
+  text-decoration: underline;
 }

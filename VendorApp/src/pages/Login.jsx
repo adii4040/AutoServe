@@ -58,75 +58,61 @@ function Login() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <h1>Vendor Portal</h1>
-        <p className="subtitle">Login to manage your bookings</p>
+      <div className="auth-card surface-panel">
+        <div className="auth-badge chip" data-tone="primary">Vendor access</div>
+        <h1>Welcome back</h1>
+        <p className="subtitle">Log in to manage bookings, inspections, and vendor status from one place.</p>
 
         {error && (
-          <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-center">
-            {error}
+          <div className="state-panel" data-variant="error" role="alert">
+            <div>
+              <div className="state-title">Unable to sign in</div>
+              <div className="state-copy">{error}</div>
+            </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email Address</label>
+          <div className="field">
+            <label className="field-label" htmlFor="email">Email Address</label>
             <input
+              id="email"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
               autoComplete="email"
+              placeholder="you@yourshop.com"
             />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
+          <div className="field">
+            <label className="field-label" htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
               autoComplete="current-password"
+              placeholder="Enter your password"
             />
           </div>
 
           <button
             type="submit"
-            className="login-btn flex items-center justify-center gap-2"
+            className="btn-primary login-btn"
             disabled={loading}
           >
-            {loading && (
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                />
-              </svg>
-            )}
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
         <div className="register-link">
           Don't have an account?{' '}
-          <Link to="/vendor-register">Register as vendor</Link>
+          <Link to="/vendor-signup">Register as vendor</Link>
         </div>
       </div>
     </div>

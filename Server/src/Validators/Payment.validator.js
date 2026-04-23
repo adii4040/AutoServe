@@ -19,4 +19,19 @@ const verifyPaymentValidation = z.object({
     razorpay_signature: z.string().trim().min(1),
 });
 
-export { createOrderValidation, verifyPaymentValidation };
+const paymentStatusParamsValidation = z.object({
+    bookingId: z.string().regex(objectIdRegex, "Invalid bookingId"),
+});
+
+const paymentStatusQueryValidation = z.object({
+    paymentType: z.enum(["inspection", "service"], {
+        errorMap: () => ({ message: "paymentType must be 'inspection' or 'service'" }),
+    }),
+});
+
+export {
+    createOrderValidation,
+    verifyPaymentValidation,
+    paymentStatusParamsValidation,
+    paymentStatusQueryValidation,
+};

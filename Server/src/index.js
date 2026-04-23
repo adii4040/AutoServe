@@ -5,6 +5,8 @@ import mongoose from 'mongoose'
 import { validateEnv } from './Utils/validateEnv.js'
 import { startAgenda } from './Jobs/agenda.js'
 import { registerDispatchJob } from './Jobs/dispatch.job.js'
+import { registerWebhookRetryJob } from './Jobs/webhookRetry.job.js'
+import { registerPaymentCleanupJob } from './Jobs/paymentCleanup.job.js'
 
 validateEnv()
 
@@ -33,6 +35,8 @@ connectDb()
 
         try {
             registerDispatchJob()
+            registerWebhookRetryJob()
+            registerPaymentCleanupJob()
             await startAgenda()
         } catch (error) {
             logger.error('Agenda startup failed', { error: error?.message || error })

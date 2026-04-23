@@ -55,6 +55,14 @@ const getVendorRequestedBookings = async () => {
     return data
 }
 
+/**
+ * Get all bookings for the current vendor (alias for ongoing bookings)
+ * Used by useFetchVendorBookings hook
+ */
+const getVendorBookings = async () => {
+    return getVendorOngoingBookings()
+}
+
 
 /**
  * Register vendor with multipart form data
@@ -262,6 +270,7 @@ export {
     getVendorById,
     fetchAllUnverifiedVendors,
     physicalVerifyVendor,
+    getVendorBookings,
     getVendorOngoingBookings,
     getVendorRequestedBookings,
     acceptVendorBooking,

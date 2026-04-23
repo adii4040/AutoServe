@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { logoutVendor } from '../services/auth'
@@ -26,14 +26,22 @@ function Layout({ children }) {
       <header className="header">
         <div className="header-content">
           <div className="logo">
-            <h1>AutoServe</h1>
+            <h1>AutoServe Vendor</h1>
           </div>
 
           <nav className="nav">
-            <a href="/dashboard">Dashboard</a>
-            <a href="/bookings">Bookings</a>
-            <a href="/requested-bookings">Requested Bookings</a>
-            <a href="/profile">Profile</a>
+            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/bookings" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Bookings
+            </NavLink>
+            <NavLink to="/requested-bookings" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Requested
+            </NavLink>
+            <NavLink to="/profile" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Profile
+            </NavLink>
           </nav>
 
           <div className="user-menu">

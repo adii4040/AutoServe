@@ -64,20 +64,54 @@ export default function BookingList() {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">Ongoing Bookings</h1>
+      <div className="page-shell">
+        <div className="page-header app-hero">
+          <div>
+            <div className="chip" data-tone="primary">Active queue</div>
+            <h1 className="page-title" style={{ marginTop: 12 }}>Ongoing bookings</h1>
+            <p className="page-subtitle">Track jobs in motion, filter by customer or service, and advance booking states with clearer feedback.</p>
+          </div>
+        </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400 text-center py-16">Loading bookings...</p>
+          <div className="state-panel" data-variant="loading">
+            <div>
+              <div className="state-title">Loading bookings</div>
+              <div className="state-copy">Pulling your active queue and workflow states.</div>
+            </div>
+          </div>
         ) : error ? (
-          <p className="text-sm text-red-400 text-center py-16">{error}</p>
+          <div className="state-panel" data-variant="error" role="alert">
+            <div>
+              <div className="state-title">Could not load bookings</div>
+              <div className="state-copy">{error}</div>
+            </div>
+          </div>
         ) : (
-          <OngoingBookingsList
-            bookings={filteredBookings}
-            processing={processing}
-            getAllowedNextStates={getAllowedNextStates}
-            onStateChange={handleStateChange}
-          />
+          <div className="page-shell">
+            <div className="card surface-panel" style={{ display: 'grid', gap: 12 }}>
+              <div className="field">
+                <label className="field-label" htmlFor="booking-search">Search bookings</label>
+                <input
+                  id="booking-search"
+                  type="search"
+                  placeholder="Search by customer or service"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <p className="helper-text">
+                Showing {filteredBookings.length} of {bookings.length} bookings.
+              </p>
+            </div>
+
+            <OngoingBookingsList
+              bookings={filteredBookings}
+              processing={processing}
+              getAllowedNextStates={getAllowedNextStates}
+              onStateChange={handleStateChange}
+            />
+          </div>
         )}
       </div>
     </Layout>

@@ -132,69 +132,73 @@ function Signup() {
 
   return (
     <div className="signup-page">
-      <div className="signup-card">
-        <h1>Register as Service Provider</h1>
-        <p className="subtitle">Join AutoServe's network of trusted vendors</p>
+      <div className="signup-card surface-panel">
+        <div className="chip" data-tone="primary">Vendor onboarding</div>
+        <h1>Register as service provider</h1>
+        <p className="subtitle">Join AutoServe's network of trusted vendors with a clearer, guided signup flow.</p>
 
         <form onSubmit={handleSubmit} className="signup-form">
-          <h3>Personal Information</h3>
-          <div className="form-group">
-            <label htmlFor="fullname">Full Name *</label>
+          <div className="section-title">Personal information</div>
+          <div className="field">
+            <label className="field-label" htmlFor="fullname">Full Name *</label>
             <input id="fullname" name="fullname" value={form.fullname} onChange={handleChange} required />
           </div>
 
           <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="email">Email Address *</label>
+            <div className="field">
+              <label className="field-label" htmlFor="email">Email Address *</label>
               <input id="email" name="email" type="email" value={form.email} onChange={handleChange} required />
             </div>
-            <div className="form-group">
-              <label htmlFor="phone">Phone Number *</label>
+            <div className="field">
+              <label className="field-label" htmlFor="phone">Phone Number *</label>
               <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} required />
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="personalAddress">Personal Address *</label>
+          <div className="field">
+            <label className="field-label" htmlFor="personalAddress">Personal Address *</label>
             <input id="personalAddress" name="personalAddress" value={form.personalAddress} onChange={handleChange} required />
           </div>
 
-          <h3>Business Information</h3>
-          <div className="form-group">
-            <label htmlFor="shopName">Shop/Business Name *</label>
+          <div className="section-title">Business information</div>
+          <div className="field">
+            <label className="field-label" htmlFor="shopName">Shop/Business Name *</label>
             <input id="shopName" name="shopName" value={form.shopName} onChange={handleChange} required />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="shopAddress">Shop/Business Address *</label>
+          <div className="field">
+            <label className="field-label" htmlFor="shopAddress">Shop/Business Address *</label>
             <input id="shopAddress" name="shopAddress" value={form.shopAddress} onChange={handleChange} required />
           </div>
 
-          <div className="form-group">
-            <label>Workshop Coordinates *</label>
+          <div className="field">
+            <label className="field-label">Workshop Coordinates *</label>
             <button type="button" className="btn-secondary" onClick={captureLocation}>
-              {form.latitude != null && form.longitude != null ? 'Location Captured' : 'Use Current Location'}
+              {form.latitude != null && form.longitude != null ? 'Location captured' : 'Use current location'}
             </button>
             {form.latitude != null && form.longitude != null && (
-              <p className="small-note">Latitude: {form.latitude.toFixed(6)}, Longitude: {form.longitude.toFixed(6)}</p>
+              <p className="field-help">Latitude: {form.latitude.toFixed(6)}, Longitude: {form.longitude.toFixed(6)}</p>
             )}
-            {locationError && <p className="error-inline">{locationError}</p>}
+            {locationError && <p className="field-error">{locationError}</p>}
           </div>
 
-          <h3>Verification Documents</h3>
+          <div className="section-title">Verification documents</div>
           <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="panCard">PAN Card *</label>
+            <div className="field">
+              <label className="field-label" htmlFor="panCard">PAN Card *</label>
               <input id="panCard" name="panCard" type="file" accept="image/*" onChange={handleChange} required />
             </div>
-            <div className="form-group">
-              <label htmlFor="aadharCard">Aadhar Card *</label>
+            <div className="field">
+              <label className="field-label" htmlFor="aadharCard">Aadhar Card *</label>
               <input id="aadharCard" name="aadharCard" type="file" accept="image/*" onChange={handleChange} required />
             </div>
           </div>
 
-          <div className="info-box">
-            Your documents will undergo online verification. Once approved, our team will contact you for physical verification of your workshop.
+          <div className="state-panel" data-variant="loading">
+            <div>
+              <div className="state-title">Verification in two steps</div>
+              <div className="state-copy">Your documents are reviewed online first. Physical verification happens after approval.</div>
+            </div>
           </div>
 
           <button className="btn-primary" type="submit" disabled={registerVendorMutation.isPending}>

@@ -292,6 +292,36 @@ const bookingSchema = new Schema({
             type: Number,
             default: 0,
         },
+        paymentType: {
+            type: String,
+            enum: ["inspection", "service"],
+            default: null,
+        },
+        idempotencyKey: {
+            type: String,
+            default: null,
+            index: true,
+        },
+        webhookProcessed: {
+            type: Boolean,
+            default: false,
+        },
+        lastWebhookAt: {
+            type: Date,
+            default: null,
+        },
+        lastWebhookEventId: {
+            type: String,
+            default: null,
+        },
+        failureCode: {
+            type: String,
+            default: null,
+        },
+        failureReason: {
+            type: String,
+            default: null,
+        },
         paidAt: {
             type: Date,
             default: null,

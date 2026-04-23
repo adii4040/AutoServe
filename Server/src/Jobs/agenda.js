@@ -20,6 +20,8 @@ export const getAgenda = () => {
 export const startAgenda = async () => {
     const agenda = getAgenda();
     await agenda.start();
+    await agenda.every("1 minute", "retry-payment-webhook");
+    await agenda.every("30 minutes", "mark-stale-payments-failed");
     logger.info('Agenda job scheduler started');
     return agenda;
 };

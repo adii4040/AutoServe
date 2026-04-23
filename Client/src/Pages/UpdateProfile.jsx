@@ -62,12 +62,25 @@ export default function UpdateProfile() {
 
     try {
       const formData = new FormData();
-      // Server validator expects address, include it even if unchanged
-      formData.append('address', profileData.address || '');
-      if (profileData.fullname) formData.append('fullname', profileData.fullname);
+      
+      // Only include fields if they have been changed
+      if (profileData.fullname && profileData.fullname !== (currentUser.fullname || '')) {
+        formData.append('fullname', profileData.fullname);
+      }
+      
       const emailChanged = profileData.email && profileData.email !== currentUser.email;
-      if (emailChanged) formData.append('email', profileData.email);
-      if (avatarFile) formData.append('avatar', avatarFile);
+      if (emailChanged) {
+        formData.append('email', profileData.email);
+      }
+      
+      // Address is optional - only include if it has a value
+      if (profileData.address) {
+        formData.append('address', profileData.address);
+      }
+      
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
 
       const res = await updateCurrentUser(currentUser._id, formData);
       toast({ title: 'Profile updated', description: 'Your profile has been saved successfully.' });
