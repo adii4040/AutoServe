@@ -1,8 +1,3 @@
-// Add this at the top if not present
-const rejectBooking = asyncHandler(async (req, res) => {
-    const booking = await bookingService.rejectBooking(req.vendor, req.params.id);
-    return res.status(200).json(new ApiResponse(200, { booking }, "Booking rejected successfully"));
-});
 import { ApiResponse } from "../Utils/ApiResponse.utils.js";
 import { asyncHandler } from "../Utils/asyncHandler.js";
 import * as bookingService from "../Services/booking.service.js";
@@ -137,6 +132,11 @@ const getVendorBookingDetail = asyncHandler(async (req, res) => {
 const findNearbyVendors = asyncHandler(async (req, res) => {
     const vendors = await bookingService.findNearbyVendors(req.query);
     return res.status(200).json(new ApiResponse(200, { vendors }, "Nearby vendors fetched successfully"));
+});
+
+const rejectBooking = asyncHandler(async (req, res) => {
+    const booking = await bookingService.rejectBooking(req.vendor, req.params.id);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking rejected successfully"));
 });
 
 export {

@@ -75,7 +75,7 @@ export default function Navbar() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
-          {isLoggedIn && (
+          {isLoggedIn ? (
             <div className="relative" ref={profileRef}>
               <button
                 type="button"
@@ -108,6 +108,19 @@ export default function Navbar() {
                   </button>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button variant="ghost" className="rounded-full text-[15px] font-semibold text-slate-700 hover:bg-slate-50">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button className="rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-6 text-[15px] font-semibold text-white shadow-md hover:from-orange-600 hover:to-orange-700">
+                  Sign Up
+                </Button>
+              </Link>
             </div>
           )}
         </div>

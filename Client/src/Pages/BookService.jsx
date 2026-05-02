@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { FiTool, FiDroplet, FiBattery, FiCircle } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '@/context/AuthContext';
 
 const serviceCardMap = {
   'Mechanical':   'Mechanical Service',
@@ -193,6 +194,14 @@ export default function BookService() {
   const [error, setError] = useState(null);
   const [addressLoading, setAddressLoading] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   function handleServiceSelect(title) {
     setForm(f => ({ ...f, serviceCategory: [serviceCardMap[title]] }));
