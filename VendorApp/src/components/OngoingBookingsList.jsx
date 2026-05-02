@@ -7,13 +7,14 @@ export default function OngoingBookingsList({
   onStateChange,
 }) {
   return (
-    <div>  
+    <div>
       {bookings.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-8">
-          No ongoing bookings
-        </p>
+        <div className="empty-state surface-panel">
+          <h3>No ongoing bookings</h3>
+          <p>Bookings currently in progress will appear here with quick state controls and status context.</p>
+        </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="form-grid">
           {bookings.map((booking) => (
             <OngoingBookingCard
               key={booking.bookingId}

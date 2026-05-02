@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +72,8 @@ const formatDate = (value) => {
 
 export default function MyBookings() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHistoryPage = location.pathname.startsWith('/history');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -131,8 +133,12 @@ export default function MyBookings() {
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
-              <p className="text-gray-600">Track and manage all your service appointments</p>
+              <h1 className="text-3xl font-bold text-gray-900">{isHistoryPage ? 'History' : 'My Bookings'}</h1>
+              <p className="text-gray-600">
+                {isHistoryPage
+                  ? 'View past, completed, and cancelled bookings in one place'
+                  : 'Track and manage all your service appointments'}
+              </p>
             </div>
           </div>
         </div>
@@ -241,7 +247,7 @@ export default function MyBookings() {
                       <div className="text-right">
                         <p className="text-2xl font-bold text-gray-900">{booking.price}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/inspection-detail?id=${booking.id}`)}>
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/booking/${booking.id}`)}>
                         View Details
                       </Button>
                     </div>

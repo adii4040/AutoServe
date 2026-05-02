@@ -10,7 +10,7 @@ import userUpload from '../Middlewares/multer.config/user.multer.middleware.js'
 import verifyJWT from '../Middlewares/auth.middleware.js'
 
 //Validators
-import { emailValidation, registerUserValidation, loginUserValidation, resetPasswordValidation, updateUserValidation } from '../Validators/User.validator.js'
+import { emailValidation, registerUserValidation, loginUserValidation, resetPasswordValidation, updateUserValidation, forgotPasswordEmailValidation } from '../Validators/User.validator.js'
 
 
 const router = Router()
@@ -19,7 +19,7 @@ const router = Router()
 router.route('/register').post( userUpload.single("avatar") , validate(registerUserValidation, validationSource.BODY), registerUser)
 router.route('/login').post(validate(loginUserValidation, validationSource.BODY), loginUser)
 router.route('/:id/verify-email/:emailVerificationToken').get( verifyEmail)
-router.route('/request-forgot-password').post( validate(emailValidation, validationSource.BODY), forgotPasswordRequest )
+router.route('/request-forgot-password').post( validate(forgotPasswordEmailValidation, validationSource.BODY), forgotPasswordRequest )
 router.route('/:forgotPasswordToken/reset-forgot-password').put( validate(resetPasswordValidation, validationSource.BODY), resetForgotPassword )
 
 //Secured Route

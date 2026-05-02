@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Layout from '../components/Layout'
 import '../styles/profile.css'
 import { useAuth } from '../context/AuthContext'
@@ -8,19 +8,41 @@ import { useAuth } from '../context/AuthContext'
 function Profile() {
   const { profile: vendor, isLoading } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+
+  const initialDraft = useMemo(() => ({
+    shopName: vendor?.shopName || '',
+    phone: vendor?.phone || '',
+    city: vendor?.city || '',
+    description: vendor?.description || '',
+  }), [vendor]);
+
+  const handleEdit = () => {
+    setDraft(initialDraft)
+    setEditing(true)
+  }
 
   const handleSave = async () => {
-    // TODO: Update vendor profile on backend
-    // PATCH /api/v1/vendor/profile
-    setEditing(false);
+    setEditing(false)
   }
 
   return (
     <Layout>
-      <div className="profile-container">
-        <h1>Vendor Profile</h1>
+      <div className="page-shell profile-container">
+        <div className="page-header app-hero">
+          <div>
+            <div className="chip" data-tone="primary">Account profile</div>
+            <h1 className="page-title" style={{ marginTop: 12 }}>Vendor profile</h1>
+            <p className="page-subtitle">Review your business identity, contact details, and verification status in one place.</p>
+          </div>
+        </div>
         {isLoading ? (
-          <p>Loading...</p>
+          <div className="state-panel" data-variant="loading">
+            <div>
+              <div className="state-title">Loading profile</div>
+              <div className="state-copy">Fetching the latest vendor account details.</div>
+            </div>
+          </div>
         ) : vendor ? (
           <div className="profile-card">
             <div className="profile-header">
@@ -55,11 +77,7 @@ function Profile() {
                   <span>{vendor.description}</span>
                 </div>
 
-                <button 
-                  className="btn-primary" 
-                  onClick={() => setEditing(true)}
-                  style={{ marginTop: '20px' }}
-                >
+                <button className="btn-primary" onClick={handleEdit} style={{ marginTop: '20px' }}>
                   Edit Profile
                 </button>
               </div>
@@ -69,8 +87,8 @@ function Profile() {
                   <label>Shop Name</label>
                   <input 
                     type="text" 
-                    value={vendor.shopName}
-                    onChange={(e) => setVendor({ ...vendor, shopName: e.target.value })}
+                    value={draft?.shopName || ''}
+                    onChange={(e) => setDraft((prev) => ({ ...(prev || initialDraft), shopName: e.target.value }))}
                   />
                 </div>
 
@@ -78,8 +96,8 @@ function Profile() {
                   <label>Phone</label>
                   <input 
                     type="tel" 
-                    value={vendor.phone}
-                    onChange={(e) => setVendor({ ...vendor, phone: e.target.value })}
+                    value={draft?.phone || ''}
+                    onChange={(e) => setDraft((prev) => ({ ...(prev || initialDraft), phone: e.target.value }))}
                   />
                 </div>
 
@@ -87,16 +105,16 @@ function Profile() {
                   <label>City</label>
                   <input 
                     type="text" 
-                    value={vendor.city}
-                    onChange={(e) => setVendor({ ...vendor, city: e.target.value })}
+                    value={draft?.city || ''}
+                    onChange={(e) => setDraft((prev) => ({ ...(prev || initialDraft), city: e.target.value }))}
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Description</label>
                   <textarea 
-                    value={vendor.description}
-                    onChange={(e) => setVendor({ ...vendor, description: e.target.value })}
+                    value={draft?.description || ''}
+                    onChange={(e) => setDraft((prev) => ({ ...(prev || initialDraft), description: e.target.value }))}
                     rows="4"
                   />
                 </div>
@@ -109,11 +127,19 @@ function Profile() {
                     Cancel
                   </button>
                 </div>
+                <p className="helper-text" style={{ marginTop: 12 }}>
+                  Profile saving is still connected to the current backend flow. This edit view now keeps changes local instead of breaking the form.
+                </p>
               </div>
             )}
           </div>
         ) : (
-          <p>Error loading profile</p>
+          <div className="state-panel" data-variant="error">
+            <div>
+              <div className="state-title">Error loading profile</div>
+              <div className="state-copy">Unable to load vendor account details.</div>
+            </div>
+          </div>
         )}
       </div>
     </Layout>

@@ -14,6 +14,8 @@ import Signup from './components/Authentication/signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import BookService from './Pages/BookService';
 import BookingDetail from './Pages/BookingDetail';
+import RequestForgotPassword from './Pages/RequestForgotPassword';
+import ResetForgotPassword from './Pages/ResetForgotPassword';
 
 function App() {
 
@@ -49,6 +51,11 @@ function App() {
             <MyBookings />
           </ProtectedRoute>
         } />
+        <Route path="/history" element={
+          <ProtectedRoute allowedActor="USER">
+            <MyBookings />
+          </ProtectedRoute>
+        } />
         <Route path="/my-jobs" element={
           <ProtectedRoute allowedActor="USER">
             <MyJobs />
@@ -63,6 +70,8 @@ function App() {
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/user/request-forgot-password" element={<RequestForgotPassword />} />
+        <Route path="/user/:token/reset-forgot-password" element={<ResetForgotPassword />} />
         {/* Vendor signup/login routes removed */}
         
         {/* Employee routes removed */}

@@ -24,6 +24,7 @@ function App() {
             <Route path="/vendor-login" element={<Login />} />
             <Route path="/vendor-signup" element={<Signup />} />
             <Route path="/vendor-onboarding/:vendorId" element={<VendorOnboardingStatus />} />
+            <Route path="/vendor-onboarding" element={<Navigate to="/vendor-signup" replace />} />
             <Route path="/employee/vendor-verification" element={<EmployeeVendorVerification />} />
             
             {/* Vendor Protected Routes */}

@@ -1,25 +1,3 @@
-import { getVendorBookingDetail } from "../Services/booking.service.js";
-// GET /api/v1/vendor/booking/:bookingId
-export const getVendorBookingDetailController = asyncHandler(async (req, res) => {
-    const booking = await getVendorBookingDetail(req.vendor._id, req.params.bookingId);
-    return res.status(200).json(new ApiResponse(200, { booking }, "Booking fetched successfully"));
-});
-// PATCH /api/v1/vendor/availability
-export const updateAvailabilityStatus = asyncHandler(async (req, res) => {
-    const vendorId = req.vendor._id;
-    const { availablityStatus } = req.body;
-
-    const vendor = await Vendor.findByIdAndUpdate(
-        vendorId,
-        { $set: { availablityStatus } },
-        { new: true, select: "availablityStatus" }
-    );
-    if (!vendor) throw new ApiError(404, "Vendor not found");
-
-    return res.status(200).json(
-        new ApiResponse(200, { availablityStatus: vendor.availablityStatus }, "Availability status updated successfully.")
-    );
-});
 import { Vendor } from "../Models/Vendor.model.js";
 import fs from 'fs';
 import { verifyDocs } from "../Utils/OCRDocVerfication.utils.js";
@@ -30,6 +8,7 @@ import { uploadOnCloudinary } from "../Utils/Cloudinary.utils.js";
 import { sendMail, VendorApprovalRejectionMailGen, VendorOnboardingPendingMailGen, VendorApprovedLoginMailGen } from '../Utils/mail.utils.js'
 import { cookieOption } from "../Utils/Constants.js";
 import { logger } from "../Utils/logger.js";
+import { getVendorBookingDetail } from "../Services/booking.service.js";
 
 const generateVendorRefreshAndAccessToken = async (vendorId) => {
     const vendor = await Vendor.findById(vendorId).select("+password");
@@ -113,9 +92,8 @@ const registerVendor = asyncHandler(async (req, res) => {
         if (AadharLocalPath && fs.existsSync(AadharLocalPath)) fs.unlinkSync(AadharLocalPath)
     }
 
-    //Perform OCR
-
-    const { verified, matchedFields, confidenceScore, error } = await verifyDocs(PANLocalPath, fullname)  //AadharLocalPath personalAddress
+    //Perform OCR — verify full name matches PAN card and/or Aadhar card
+    const { verified, matchedFields, confidenceScore, error } = await verifyDocs(PANLocalPath, AadharLocalPath, fullname)
     logger.info("registerVendor OCR verification result", { verified, confidenceScore })
 
     if (error) {
@@ -126,12 +104,11 @@ const registerVendor = asyncHandler(async (req, res) => {
     //Check if the online verification is successfull or not
     if (!verified) {
         cleanupTempFiles()
-        throw new ApiError(400, {
-            message: "Please ensure that the documents are valid and match the provided information.",
-            matchedFields,
-            confidenceScore
-        })
-
+        throw new ApiError(
+            400,
+            `Your full name "${fullname}" could not be verified in the uploaded documents. Please ensure your PAN card or Aadhar card clearly shows your full name and upload a clearer image.`,
+            [{ matchedFields, confidenceScore }]
+        )
     }
 
 
@@ -140,9 +117,11 @@ const registerVendor = asyncHandler(async (req, res) => {
     const aadharCloudinary = await uploadOnCloudinary(AadharLocalPath)
 
 
-    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+    const parsedLat = Number(latitude)
+    const parsedLon = Number(longitude)
+    const hasCoordinates = Number.isFinite(parsedLat) && Number.isFinite(parsedLon)
     const geocodedCoordinates = hasCoordinates ? null : await geocodeAddress(shopAddress || personalAddress)
-    const coordinates = hasCoordinates ? [Number(longitude), Number(latitude)] : (geocodedCoordinates || [0, 0])
+    const coordinates = hasCoordinates ? [parsedLon, parsedLat] : (geocodedCoordinates || [0, 0])
 
     const vendor = await Vendor.create({
         fullname,
@@ -372,6 +351,29 @@ const activateVendorAccount = asyncHandler(async (req, res) => {
 });
 
 
+
+// GET /api/v1/vendor/booking/:bookingId
+export const getVendorBookingDetailController = asyncHandler(async (req, res) => {
+    const booking = await getVendorBookingDetail(req.vendor._id, req.params.bookingId);
+    return res.status(200).json(new ApiResponse(200, { booking }, "Booking fetched successfully"));
+});
+
+// PATCH /api/v1/vendor/availability
+export const updateAvailabilityStatus = asyncHandler(async (req, res) => {
+    const vendorId = req.vendor._id;
+    const { availablityStatus } = req.body;
+
+    const vendor = await Vendor.findByIdAndUpdate(
+        vendorId,
+        { $set: { availablityStatus } },
+        { new: true, select: "availablityStatus" }
+    );
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    return res.status(200).json(
+        new ApiResponse(200, { availablityStatus: vendor.availablityStatus }, "Availability status updated successfully.")
+    );
+});
 
 export {
     registerVendor,

@@ -81,54 +81,97 @@ function RequestedBookings() {
 
   return (
     <Layout>
-      <div className="bookings-container">
-        <h1>Requested Bookings</h1>
+      <div className="page-shell">
+        <div className="page-header app-hero">
+          <div>
+            <div className="chip" data-tone="warning">Incoming requests</div>
+            <h1 className="page-title" style={{ marginTop: 12 }}>Requested bookings</h1>
+            <p className="page-subtitle">Review new booking requests, respond before the timer expires, and keep your live queue moving.</p>
+          </div>
+        </div>
+
         {isLoading ? (
-          <p>Loading...</p>
+          <div className="state-panel" data-variant="loading">
+            <div>
+              <div className="state-title">Loading requested bookings</div>
+              <div className="state-copy">Checking for the latest customer requests.</div>
+            </div>
+          </div>
         ) : isError ? (
-          <p className="error">{error?.message || "Failed to load requested bookings."}</p>
-          ) : bookings && bookings.length === 0 ? (
-              <div>
-                <p style={{ marginBottom: 16 }}>You have no requested booking(s).</p>
-              </div>
+          <div className="state-panel" data-variant="error" role="alert">
+            <div>
+              <div className="state-title">Could not load requests</div>
+              <div className="state-copy">{error?.message || 'Failed to load requested bookings.'}</div>
+            </div>
+          </div>
+        ) : bookings && bookings.length === 0 ? (
+          <div className="empty-state surface-panel">
+            <h3>No requested bookings</h3>
+            <p>You have no pending customer requests right now. New requests will appear here as soon as they are assigned.</p>
+          </div>
         ) : (
-          <div className="requested-bookings-cards"> {
-            bookings.map((booking) => (
-              <div key={booking.bookingId} className="booking-card" style={{ border: '1px solid #eee', borderRadius: 8, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px #0001' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong>Service:</strong> {booking.requestedServiceCategories?.join(', ')}<br />
-                    <strong>Customer:</strong> {booking.user?.fullname} <span style={{ fontSize: '0.9em', color: '#888' }}>({booking.user?.phone})</span><br />
-                    <strong>Distance:</strong> {booking.distanceKm !== null && booking.distanceKm !== undefined ? booking.distanceKm + ' km' : '-'}<br />
-                    <strong>Problem:</strong> {booking.problemDescription || '-'}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <strong>Timer: </strong>
-                      {timers[booking.bookingId] > 0 ? (
-                        <span style={{ color: timers[booking.bookingId] <= 5 ? 'red' : 'black' }}>{timers[booking.bookingId]}s</span>
-                      ) : (
-                        <span style={{ color: 'gray' }}>Expired</span>
-                      )}
+          <div className="form-grid">
+            {bookings.map((booking) => {
+              const remaining = timers[booking.bookingId] || 0;
+              const isExpired = remaining <= 0;
+              const isProcessing = processing.id === booking.bookingId;
+
+              return (
+                <article key={booking.bookingId} className="card surface-panel">
+                  <div className="page-header" style={{ alignItems: 'center' }}>
+                    <div>
+                      <div className="section-title">{booking.requestedServiceCategories?.join(', ') || 'Requested service'}</div>
+                      <p className="helper-text">
+                        {booking.user?.fullname || 'Unknown customer'} {booking.user?.phone ? `• ${booking.user.phone}` : ''}
+                      </p>
                     </div>
+                    <div className="chip" data-tone={isExpired ? 'danger' : remaining <= 5 ? 'warning' : 'primary'}>
+                      {isExpired ? 'Expired' : `${remaining}s remaining`}
+                    </div>
+                  </div>
+
+                  <div className="section-divider" />
+
+                  <div className="form-grid two-col">
+                    <div>
+                      <div className="field-label">Customer</div>
+                      <div className="helper-text">{booking.user?.fullname || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="field-label">Distance</div>
+                      <div className="helper-text">{booking.distanceKm != null ? `${booking.distanceKm} km` : '-'}</div>
+                    </div>
+                    <div className="field">
+                      <div className="field-label">Problem</div>
+                      <div className="helper-text">{booking.problemDescription || 'No description provided.'}</div>
+                    </div>
+                    <div className="field">
+                      <div className="field-label">Request timer</div>
+                      <div className="helper-text">Respond before the booking expires to keep the request active.</div>
+                    </div>
+                  </div>
+
+                  <div className="section-divider" style={{ marginTop: 18 }} />
+
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                     <button
-                      disabled={timers[booking.bookingId] <= 0 || processing.id === booking.bookingId}
-                      style={{ marginRight: 8 }}
-                      onClick={() => handleAccept(booking.bookingId)}
-                    >
-                      {processing.id === booking.bookingId && processing.action === 'accept' ? 'Accepting...' : 'Accept'}
-                    </button>
-                    <button
-                      disabled={timers[booking.bookingId] <= 0 || processing.id === booking.bookingId}
+                      className="btn-secondary"
+                      disabled={isExpired || isProcessing}
                       onClick={() => handleReject(booking.bookingId)}
                     >
-                      {processing.id === booking.bookingId && processing.action === 'reject' ? 'Rejecting...' : 'Reject'}
+                      {isProcessing && processing.action === 'reject' ? 'Rejecting...' : 'Reject'}
+                    </button>
+                    <button
+                      className="btn-primary"
+                      disabled={isExpired || isProcessing}
+                      onClick={() => handleAccept(booking.bookingId)}
+                    >
+                      {isProcessing && processing.action === 'accept' ? 'Accepting...' : 'Accept'}
                     </button>
                   </div>
-                </div>
-              </div>
-            ))
-          }
+                </article>
+              )
+            })}
           </div>
         )}
       </div>

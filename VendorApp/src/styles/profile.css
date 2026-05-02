@@ -1,24 +1,25 @@
 .profile-container {
-  padding: 20px 0;
+  padding: 0;
 }
 
 .profile-container h1 {
-  margin-bottom: 30px;
-  color: #333;
+  margin-bottom: 0;
+  color: var(--color-text);
   font-size: 28px;
 }
 
 .profile-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
+  border: 1px solid rgba(215, 222, 234, 0.9);
 }
 
 .profile-header {
-  background: linear-gradient(135deg, #0066cc 0%, #00d9ff 100%);
+  background: linear-gradient(135deg, rgba(11, 94, 215, 0.98), rgba(11, 94, 215, 0.78));
   color: white;
-  padding: 40px 20px;
+  padding: 32px 24px;
   display: flex;
   gap: 30px;
   align-items: center;
@@ -28,7 +29,7 @@
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: white;
+  background: rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,13 +64,13 @@
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid white;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .profile-details,
 .profile-form {
-  padding: 30px;
+  padding: 28px;
 }
 
 .detail-row {
@@ -81,11 +82,11 @@
 .detail-row label {
   font-weight: 600;
   width: 120px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .detail-row span {
-  color: #333;
+  color: var(--color-text);
   flex: 1;
 }
 
@@ -97,16 +98,16 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   font-size: 14px;
 }
 
 .profile-form input,
 .profile-form textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
   font-size: 14px;
 }
 
@@ -119,20 +120,19 @@
 .form-actions button {
   flex: 1;
   padding: 12px;
-  border: none;
-  border-radius: 4px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .btn-secondary {
-  background-color: #ddd;
-  color: #333;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {
-  background-color: #ccc;
+  background-color: #edf2f8;
 }
 
 /* Responsive */
