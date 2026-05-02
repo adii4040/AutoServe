@@ -163,7 +163,6 @@ const dispatchBooking = async (bookingId) => {
         eligibleVendors = await Vendor.find({
             isVerified: true,
             serviceCategories: { $in: booking.requestedServiceCategories },
-            "location.coordinates": { $ne: [0, 0] }, // Exclude vendors at [0,0]
             location: {
                 $nearSphere: {
                     $geometry: {
@@ -182,27 +181,39 @@ const dispatchBooking = async (bookingId) => {
         })
             .select("_id")
             .limit(BOOKING_DISPATCH.MAX_CANDIDATE_VENDORS);
-        // Print all vendors for debugging
-        const allVendors = await Vendor.find({});
-        console.log("ALL VENDORS IN DB:");
-        allVendors.forEach(v => {
-            console.log({
-                _id: v._id,
-                coordinates: v.location?.coordinates,
-                isVerified: v.isVerified,
-                availablityStatus: v.availablityStatus,
-                serviceCategories: v.serviceCategories,
-                activeBookingIds: v.activeBookingIds
-            });
-        });
 
         // Debug logging
-        console.log("Booking location:", booking.serviceLocation.coordinates);
-        console.log("Eligible vendors found:", eligibleVendors);
+        logger.info("dispatchBooking: eligible vendors search", {
+            radius,
+            bookingCoords: booking.serviceLocation.coordinates,
+            foundCount: eligibleVendors.length,
+        });
 
         if (eligibleVendors.length === 0) {
             radius += BOOKING_DISPATCH.RADIUS_INCREMENT_KM;
         }
+    }
+
+    // If still no vendors found with geo query, fall back to ANY verified vendor
+    // with matching service categories (for dev/testing when vendors have [0,0] coords)
+    if (eligibleVendors.length === 0) {
+        logger.warn("dispatchBooking: no geo-eligible vendors, falling back to all matching vendors");
+        eligibleVendors = await Vendor.find({
+            isVerified: true,
+            $or: [
+                { serviceCategories: { $in: booking.requestedServiceCategories } },
+                { serviceCategories: { $size: 0 } } // Allow new vendors with empty categories
+            ],
+            $expr: {
+                $lt: [
+                    { $size: { $ifNull: ["$activeBookingIds", []] } },
+                    3
+                ]
+            }
+        })
+            .select("_id")
+            .limit(BOOKING_DISPATCH.MAX_CANDIDATE_VENDORS);
+        logger.info("dispatchBooking: fallback found", { count: eligibleVendors.length });
     }
 
     if (eligibleVendors.length === 0) {
@@ -386,12 +397,25 @@ const getMyBookings = async (userId) => {
 };
 
 const getBookingDetail = async (userId, bookingId) => {
-    const booking = await Booking.findOne({ _id: bookingId, userId }).populate(
+    // Find the booking regardless of its state (including CANCELLED)
+    const booking = await Booking.findOne({
+        _id: bookingId,
+        userId: userId.toString()
+    }).populate(
         "vendorId",
         "fullname shopName phone availablityStatus location"
-    );
+    ).lean();
 
-    if (!booking) throw new ApiError(404, "Booking not found");
+    if (!booking) {
+        throw new ApiError(404, "Booking not found or invalid ID");
+    }
+
+    // Include vendor batch info for cancelled bookings to show assignment history
+    if (booking.bookingState === BOOKING_STATES.CANCELLED && !booking.vendorId) {
+        // Cancelled before vendor assignment - this is valid
+        booking.cancelledBeforeAssignment = true;
+    }
+
     return booking;
 };
 
@@ -811,16 +835,14 @@ const getVendorMyBookings = async (vendorId) => {
     });
 };
 
-// New: Get bookings where vendor is in the current batch (eligible to accept)
+// New: Get bookings where vendor is in ANY batch in dispatchMeta (eligible to accept)
 const getVendorRequestedBookings = async (vendorId) => {
-    // Find bookings where vendor is eligible
+    // Find DISPATCHING bookings where the vendor appears in any batch
+    // Use a flat search across all vendorBatches arrays
     const bookings = await Booking.find({
         bookingState: BOOKING_STATES.DISPATCHING,
-        $expr: {
-            $in: [vendorId, {
-                $arrayElemAt: ["$dispatchMeta.vendorBatches", "$dispatchMeta.currentBatchIndex"]
-            }]
-        }
+        vendorId: null, // Not yet accepted
+        "dispatchMeta.vendorBatches": { $elemMatch: { $elemMatch: { $eq: vendorId } } }
     })
     .populate('userId', 'fullname phone email avatar')
     .sort({ createdAt: -1 });
@@ -832,17 +854,15 @@ const getVendorRequestedBookings = async (vendorId) => {
     return bookings.map(b => {
         // Calculate distance if vendor and booking location are available
         let distanceKm = null;
+        const bookingCoords = b.serviceLocation?.coordinates;
+        const vendorCoords = vendor?.location?.coordinates;
         if (
-            b.serviceLocation &&
-            b.serviceLocation.coordinates &&
-            b.serviceLocation.coordinates.length === 2 &&
-            vendor &&
-            vendor.location &&
-            Array.isArray(vendor.location.coordinates) &&
-            vendor.location.coordinates.length === 2
+            Array.isArray(bookingCoords) && bookingCoords.length === 2 &&
+            Array.isArray(vendorCoords) && vendorCoords.length === 2 &&
+            !(vendorCoords[0] === 0 && vendorCoords[1] === 0)
         ) {
-            const [lng1, lat1] = b.serviceLocation.coordinates;
-            const [lng2, lat2] = vendor.location.coordinates;
+            const [lng1, lat1] = bookingCoords;
+            const [lng2, lat2] = vendorCoords;
             const toRadians = (deg) => (deg * Math.PI) / 180;
             const earthRadiusKm = 6371;
             const dLat = toRadians(lat2 - lat1);
@@ -858,6 +878,7 @@ const getVendorRequestedBookings = async (vendorId) => {
             problemDescription: b.problemDescription,
             vehicleInfo: b.vehicleInfo,
             serviceLocation: b.serviceLocation,
+            address: b.serviceLocation?.serviceAddress?.formattedAddress || null,
             user: b.userId ? {
                 fullname: b.userId.fullname,
                 phone: b.userId.phone,

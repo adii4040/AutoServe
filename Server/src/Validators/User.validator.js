@@ -77,10 +77,15 @@ const updateUserValidation = z.object({
 
 })
 
+const forgotPasswordEmailValidation = z.object({
+    email: emailValidation,
+})
+
 
 export {
     registerUserValidation,
     loginUserValidation,
     resetPasswordValidation,
-    updateUserValidation
+    updateUserValidation,
+    forgotPasswordEmailValidation
 }

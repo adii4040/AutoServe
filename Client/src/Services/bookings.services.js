@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 
-const API_BASE = '/api/v1/bookings';
+const API_BASE = '/bookings';
 
 // Create a new booking
 export async function createBooking(data) {
@@ -12,14 +12,17 @@ export async function createBooking(data) {
 // Get booking by ID (with vendor batch for map)
 export async function getBookingById(bookingId) {
   const res = await axiosInstance.get(`${API_BASE}/${bookingId}`);
-  // Expecting: { booking, vendors: [] }
-  return res.data;
+  // Server returns ApiResponse: { success, statusCode, data: { booking }, message }
+  const booking = res.data?.data?.booking || res.data?.booking || null;
+  const vendors = res.data?.data?.vendors || res.data?.vendors || [];
+  return { booking, vendors };
 }
 
 // Get all bookings for current user
 export async function getMyBookings() {
-  const res = await axiosInstance.get(`${API_BASE}/my`);
-  return res.data.bookings;
+  const res = await axiosInstance.get(`${API_BASE}/my-bookings`);
+  // Server returns ApiResponse: { success, data: { bookings } }
+  return res.data?.data?.bookings || res.data?.bookings || [];
 }
 
 /**

@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../axiosInstance';
 
-const PAYMENT_BASE = '/api/v1/payment';
+const PAYMENT_BASE = '/payment';
 
 /**
  * Create a Razorpay order for a booking

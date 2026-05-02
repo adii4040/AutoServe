@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import BookingMap from '../components/BookingMap';
 import PaymentCheckout from '../components/PaymentCheckout';
 import { getBookingById, approveServices, cancelBooking } from '../Services/bookings.services';
+import { XCircle } from 'lucide-react';
 import {
   joinBookingTracking,
   leaveBookingTracking,
@@ -144,15 +145,40 @@ export default function BookingDetail() {
 
       toast({
         title: 'Booking cancelled',
-        description: 'Your booking has been cancelled.',
+        description: 'Your booking has been cancelled successfully.',
       });
 
       setShowCancelForm(false);
-      await fetchBooking();
+      setCancellationReason('');
+      // Redirect to my-bookings after successful cancellation
+      setTimeout(() => {
+        navigate('/my-bookings');
+      }, 1500);
     } catch (err) {
+      let errorMsg = 'Could not cancel booking. Please try again.';
+      
+      // Parse Axios error response
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.status === 409) {
+        errorMsg = 'This booking has already been cancelled or completed and cannot be cancelled again.';
+        // Redirect to my-bookings after showing error
+        toast({
+          title: 'Booking Already Cancelled',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+        setTimeout(() => {
+          navigate('/my-bookings');
+        }, 2500);
+        return;
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+
       toast({
         title: 'Failed to cancel booking',
-        description: err.message,
+        description: errorMsg,
         variant: 'destructive',
       });
       console.error('Cancel booking error:', err);
@@ -176,12 +202,13 @@ export default function BookingDetail() {
     return <div className="text-red-500 text-center mt-8">{error}</div>;
   }
 
-  const bookingState = booking?.bookingState || booking?.status || 'N/A';
+  const bookingState = booking?.bookingState || booking?.status || 'UNKNOWN';
   const isWaitingForApproval = bookingState === 'WAITING_FOR_USER_APPROVAL';
   const isServiceInProgress = bookingState === 'SERVICE_IN_PROGRESS';
   const isCompleted = bookingState === 'COMPLETED';
-  const isCancelled = bookingState === 'CANCELLED';
-  const canCancel = !isCompleted && !isCancelled;
+  // Check both bookingState and the presence of cancellation data as fallback
+  const isCancelled = bookingState === 'CANCELLED' || (booking?.cancellation?.cancelledAt ? true : false);
+  const canCancel = booking !== null && !isCompleted && !isCancelled;
   const inspectionAmount = booking?.payments?.inspection?.amount || booking?.inspection?.amount || 0;
   const serviceAmount = booking?.payments?.service?.amount || booking?.service?.amount || 0;
 
@@ -208,9 +235,47 @@ export default function BookingDetail() {
         </Card>
       )}
 
+      {/* Cancelled Booking Alert */}
+      {isCancelled && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardHeader className="bg-red-100">
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              Booking Cancelled
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              {booking?.cancellation?.cancelledAt && (
+                <div>
+                  <span className="font-medium text-gray-700">Cancelled On:</span>
+                  <p className="text-gray-900">
+                    {new Date(booking.cancellation.cancelledAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {booking?.cancellation?.cancelledBy && (
+                <div>
+                  <span className="font-medium text-gray-700">Cancelled By:</span>
+                  <p className="text-gray-900 capitalize">
+                    {booking.cancellation.cancelledBy === 'USER' ? 'You' : 'Service Provider'}
+                  </p>
+                </div>
+              )}
+              {booking?.cancellation?.reason && (
+                <div className="md:col-span-2">
+                  <span className="font-medium text-gray-700">Reason:</span>
+                  <p className="text-gray-900 mt-1">{booking.cancellation.reason}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Booking Info Card */}
       <Card className="mb-6">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader className={`bg-gradient-to-r ${isCancelled ? 'from-red-50 to-pink-50' : 'from-blue-50 to-indigo-50'}`}>
           <CardTitle>Booking Information</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
@@ -225,7 +290,9 @@ export default function BookingDetail() {
             </div>
             <div>
               <span className="font-medium text-gray-700">Status:</span>
-              <p className="text-lg font-semibold text-blue-600 capitalize">{bookingState}</p>
+              <p className={`text-lg font-semibold capitalize ${isCancelled ? 'text-red-600' : 'text-blue-600'}`}>
+                {bookingState}
+              </p>
             </div>
             <div>
               <span className="font-medium text-gray-700">Date:</span>
@@ -455,6 +522,20 @@ export default function BookingDetail() {
             {isCompleted && (
               <div className="p-4 bg-green-50 rounded border border-green-200">
                 <p className="text-gray-900 font-semibold">✓ Booking completed</p>
+              </div>
+            )}
+
+            {isCancelled && (
+              <div className="p-4 bg-red-50 rounded border border-red-200">
+                <p className="text-gray-900 font-semibold flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                  This booking has been cancelled
+                </p>
+                {booking?.cancellation?.cancelledAt && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Cancelled on {new Date(booking.cancellation.cancelledAt).toLocaleString()}
+                  </p>
+                )}
               </div>
             )}
 

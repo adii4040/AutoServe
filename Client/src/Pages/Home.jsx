@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, ClipboardCheck, Shield, Sparkles, Star, Timer, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Booking } from '@/entities/Booking';
@@ -84,11 +85,10 @@ const testimonials = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
+
   const handleBookService = () => {
-    toast({
-      title: 'Booking System',
-      description: 'Service booking feature coming soon! Please call us for immediate assistance.',
-    });
+    navigate('/bookservice');
   };
 
   const handleSearch = (searchData) => {

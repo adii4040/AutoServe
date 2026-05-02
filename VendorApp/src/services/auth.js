@@ -77,8 +77,12 @@ const registerVendor = async (formData) => {
 
     const contentType = res.headers.get("content-type")
     if (!res.ok) {
-        const errorData = contentType && contentType.includes("application/json") ? await res.json() : { error: await res.text() }
-        throw new Error(errorData?.message?.message || errorData?.message || "Vendor Registration Failed")
+        const errorData = contentType && contentType.includes("application/json") ? await res.json() : { message: await res.text() }
+        // Handle both plain string and object message formats
+        const msg = typeof errorData?.message === "object"
+            ? errorData.message?.message
+            : errorData?.message
+        throw new Error(msg || "Vendor Registration Failed")
     }
 
     return res.json()

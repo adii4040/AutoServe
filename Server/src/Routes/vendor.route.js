@@ -1,9 +1,8 @@
 
-import { getVendorBookingDetailController } from '../Controllers/vendor.controller.js';
-
 import { Router } from 'express';
-import { updateVendorBookingState } from '../Controllers/vendorBookingState.controller.js';
+import { z } from 'zod';
 
+// Controllers
 import {
     registerVendor,
     getAllUnVerifiedVendorsData,
@@ -14,11 +13,22 @@ import {
     getCurrentVendor,
     activateVendorAccount,
     updateAvailabilityStatus,
+    getVendorBookingDetailController,
 } from '../Controllers/vendor.controller.js'
+import { updateVendorBookingState } from '../Controllers/vendorBookingState.controller.js'
 
-import { z } from 'zod';
+// Middlewares
+import { vendorUpload } from '../Middlewares/multer.config/vendor.multer.middleware.js'
+import { validate, validateObjectId, validationSource } from '../Middlewares/validate.middleware.js'
+import verifyVendorJWT from '../Middlewares/authVendor.middleware.js'
 
-
+// Validators
+import {
+    registerVendorValidation,
+    physicalVerificationValidation,
+    loginVendorValidation,
+    activateVendorAccountValidation,
+} from '../Validators/Vendor.validator.js'
 
 
 const router = Router();
@@ -47,25 +57,9 @@ router.route('/availability').patch(
     updateAvailabilityStatus
 );
 
-//Middleware
-import { vendorUpload } from '../Middlewares/multer.config/vendor.multer.middleware.js'
-import { validate, validateObjectId, validationSource } from '../Middlewares/validate.middleware.js'
-import verifyVendorJWT from '../Middlewares/authVendor.middleware.js'
-//Validator
-import {
-    registerVendorValidation,
-    physicalVerificationValidation,
-    loginVendorValidation,
-    activateVendorAccountValidation,
-} from '../Validators/Vendor.validator.js'
-
-
-
-
 router.route('/register').post(vendorUpload.fields([
     { name: "panCard", maxCount: 1 },
     { name: "aadharCard", maxCount: 1 },
-    // { name: "avatar", maxCount: 1 }
 ]), validate(registerVendorValidation, validationSource.BODY), registerVendor)
 
 router.route('/login').post(validate(loginVendorValidation, validationSource.BODY), loginVendor)
@@ -82,4 +76,4 @@ router.route('/:vendorId/@me').get(validateObjectId('vendorId'), getSingleVendor
 router.route('/:vendorId').get(validateObjectId('vendorId'), getSingleVendor)
 
 
-export default router
+export default router
