@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /**
  * Hook for GPS location tracking
@@ -8,6 +8,8 @@ export function useLocationTracking(bookingId, isActive = false) {
   const watchIdRef = useRef(null);
   const intervalRef = useRef(null);
   const lastLocationRef = useRef(null);
+  const [lastLocation, setLastLocation] = useState(null);
+  const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
     if (!isActive || !bookingId) return;
@@ -27,12 +29,16 @@ export function useLocationTracking(bookingId, isActive = false) {
             const { latitude, longitude, accuracy } = position.coords;
             const timestamp = new Date().toISOString();
 
-            lastLocationRef.current = {
+            const loc = {
               coordinates: [longitude, latitude],
               source: accuracy < 50 ? 'GPS' : 'NETWORK',
               accuracy,
               timestamp,
             };
+
+            lastLocationRef.current = loc;
+            setLastLocation(loc);
+            setIsTracking(true);
 
             console.log(
               `[Location] ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (accuracy: ${accuracy.toFixed(0)}m)`
@@ -44,6 +50,7 @@ export function useLocationTracking(bookingId, isActive = false) {
             if (error.code === 1) {
               console.warn('Location permission denied');
             }
+            setIsTracking(false);
           },
           {
             enableHighAccuracy: true,
@@ -86,12 +93,13 @@ export function useLocationTracking(bookingId, isActive = false) {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
       }
+      setIsTracking(false);
     };
   }, [isActive, bookingId]);
 
   return {
-    lastLocation: lastLocationRef.current,
-    isTracking: isActive && watchIdRef.current !== null,
+    lastLocation,
+    isTracking,
   };
 }
 

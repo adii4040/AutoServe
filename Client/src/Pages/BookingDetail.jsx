@@ -221,6 +221,13 @@ export default function BookingDetail() {
         ← Back
       </button>
 
+      {/* LIVE TRACKING - Show prominently when vendor is en route */}
+      {['VENDOR_EN_ROUTE', 'VENDOR_ARRIVED'].includes(bookingState) && (
+        <div className="mb-6">
+          <BookingMap booking={booking} vendors={vendors} realTimeData={realTimeData} />
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-6">Booking Details</h1>
 
       {/* Real-time Status Indicator */}
@@ -228,8 +235,8 @@ export default function BookingDetail() {
         <Card className="mb-6 border-blue-200 bg-blue-50">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-900">
-              <span className="font-semibold">Real-time Update:</span> Vendor {realTimeData.distance ? `is ${realTimeData.distance}km away` : 'location being tracked'}
-              {realTimeData.eta && ` • ETA: ${realTimeData.eta} mins`}
+              <span className="font-semibold">Real-time Update:</span> Vendor {realTimeData.distance ? `is ${realTimeData.distance.toFixed(1)}km away` : 'location being tracked'}
+              {realTimeData.eta && ` • ETA: ${Math.round(realTimeData.eta)} mins`}
             </p>
           </CardContent>
         </Card>
@@ -549,14 +556,16 @@ export default function BookingDetail() {
       </Card>
 
       {/* Map Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Service Location & Nearby Vendors</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <BookingMap booking={booking} vendors={vendors} />
-        </CardContent>
-      </Card>
+      {!['VENDOR_EN_ROUTE', 'VENDOR_ARRIVED', 'SERVICE_IN_PROGRESS'].includes(bookingState) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Service Location & Nearby Vendors</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <BookingMap booking={booking} vendors={vendors} realTimeData={realTimeData} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { useLocationTracking } from '../hooks/useLocationTracking';
 
 const stateActions = {
   VENDOR_ASSIGNED: { label: 'Start Journey', next: 'VENDOR_EN_ROUTE' },
-  VENDOR_EN_ROUTE: { label: 'Arrived', next: 'INSPECTION_IN_PROGRESS' },
+  VENDOR_EN_ROUTE: { label: 'Mark Arrived', next: 'INSPECTION_IN_PROGRESS' },
   SERVICE_IN_PROGRESS: { label: 'Mark as Completed', next: 'COMPLETED' },
 };
 
@@ -26,7 +26,7 @@ export default function BookingDetails() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/vendor/booking/${bookingId}`, { credentials: 'include' })
+    fetch(`/api/v1/bookings/vendor/${bookingId}`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .then(data => setBooking(data?.data?.booking || null))
       .catch(() => setError('Failed to load booking'))
@@ -36,24 +36,48 @@ export default function BookingDetails() {
   const handleStateAction = async (nextState) => {
     setProcessing(true);
     try {
-      const res = await fetch(`/api/v1/vendor/booking/${bookingId}/state`, {
-        method: 'PATCH',
+      let endpoint = '';
+      let method = 'PATCH';
+      let body = {};
+      
+      // Map nextState to correct endpoint
+      switch (nextState) {
+        case 'VENDOR_EN_ROUTE':
+          endpoint = `/api/v1/bookings/${bookingId}/en-route`;
+          break;
+        case 'INSPECTION_IN_PROGRESS':
+          endpoint = `/api/v1/bookings/${bookingId}/arrived`;
+          break;
+        case 'COMPLETED':
+          endpoint = `/api/v1/bookings/${bookingId}/complete`;
+          method = 'POST';
+          body = {};
+          break;
+        default:
+          setError(`Unknown state transition: ${nextState}`);
+          setProcessing(false);
+          return;
+      }
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ newState: nextState }),
+        body: method === 'POST' ? JSON.stringify(body) : undefined,
       });
 
       if (res.ok) {
-        // Refetch booking instead of full page reload
+        // Refetch booking
         const data = await res.json();
         setBooking(data?.data?.booking || booking);
-        // Show success message
+        setError(null);
         console.log(`Booking state updated to ${nextState}`);
       } else {
-        setError('Failed to update booking state');
+        const errData = await res.json();
+        setError(errData?.message || 'Failed to update booking state');
       }
     } catch (err) {
-      setError('Failed to update booking state');
+      setError('Failed to update booking state: ' + err.message);
       console.error('State action error:', err);
     } finally {
       setProcessing(false);
@@ -111,6 +135,25 @@ export default function BookingDetails() {
         <StatusBadge status={bookingState} />
       </div>
 
+      {error && (
+        <div className="state-panel" data-variant="error">
+          <div>
+            <div className="state-title">Error</div>
+            <div className="state-copy">{error}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Mapping - Show prominently when en route */}
+      {isEnRoute && (
+        <div className="state-panel" data-variant="success">
+          <div>
+            <div className="state-title">📍 Location tracking active</div>
+            <div className="state-copy">Your coordinates: {lastLocation?.coordinates[1].toFixed(4) || '...'}, {lastLocation?.coordinates[0].toFixed(4) || '...'}</div>
+          </div>
+        </div>
+      )}
+
       {isEnRoute && (
         <div className="state-panel" data-variant={isTracking ? 'success' : 'loading'}>
           <div>
@@ -166,6 +209,7 @@ export default function BookingDetails() {
         </div>
       </div>
 
+
       {booking.diagnosis && booking.diagnosis.suggestedServices && booking.diagnosis.suggestedServices.length > 0 && (
         <div className="card surface-panel">
           <h3 className="section-title">Diagnosis / suggested services</h3>
@@ -195,6 +239,15 @@ export default function BookingDetails() {
         </button>
       )}
 
+      {bookingState === 'WAITING_FOR_USER_APPROVAL' && (
+        <div className="state-panel" data-variant="loading">
+          <div>
+            <div className="state-title">Waiting for customer approval</div>
+            <div className="state-copy">The customer is reviewing the diagnosis and suggested services. Once they approve, you can proceed with the service.</div>
+          </div>
+        </div>
+      )}
+
       {bookingState === 'INSPECTION_IN_PROGRESS' && (
         <InspectionForm
           onSubmit={async ({ services, inspectionFee, issues }) => {
@@ -214,12 +267,14 @@ export default function BookingDetails() {
               if (res.ok) {
                 const data = await res.json();
                 setBooking(data?.data?.booking || booking);
+                setError(null);
                 console.log('Diagnosis submitted successfully');
               } else {
-                setError('Failed to submit diagnosis');
+                const errData = await res.json();
+                setError(errData?.message || 'Failed to submit diagnosis');
               }
             } catch (err) {
-              setError('Failed to submit diagnosis');
+              setError('Failed to submit diagnosis: ' + err.message);
               console.error('Diagnosis error:', err);
             } finally {
               setProcessing(false);
