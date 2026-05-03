@@ -125,165 +125,192 @@ export default function BookingDetails() {
 
   return (
     <Layout>
-    <div className="page-shell">
-      <div className="page-header app-hero">
-        <div>
-          <button className="btn-ghost" onClick={() => navigate(-1)}>&larr; Back</button>
-          <h1 className="page-title" style={{ marginTop: 12 }}>{booking.requestedServiceCategories?.join(', ') || 'Booking details'}</h1>
-          <p className="page-subtitle">Review customer information, progress the job state, and keep the live location tracking in view.</p>
-        </div>
-        <StatusBadge status={bookingState} />
-      </div>
-
-      {error && (
-        <div className="state-panel" data-variant="error">
-          <div>
-            <div className="state-title">Error</div>
-            <div className="state-copy">{error}</div>
+      <div className="page-shell">
+        <div className="app-hero">
+          <div className="z-10 flex items-center justify-between w-full">
+            <div className="flex flex-col">
+              <button className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-xs font-black uppercase tracking-widest mb-6" onClick={() => navigate(-1)}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Back to Pipeline
+              </button>
+              <h1 className="page-title">{booking.requestedServiceCategories?.join(', ') || 'Service Detail'}</h1>
+              <p className="page-subtitle">Reviewing job specifics, customer data, and live tracking status.</p>
+            </div>
+            <StatusBadge status={bookingState} />
           </div>
         </div>
-      )}
 
-      {/* Live Mapping - Show prominently when en route */}
-      {isEnRoute && (
-        <div className="state-panel" data-variant="success">
-          <div>
-            <div className="state-title">📍 Location tracking active</div>
-            <div className="state-copy">Your coordinates: {lastLocation?.coordinates[1].toFixed(4) || '...'}, {lastLocation?.coordinates[0].toFixed(4) || '...'}</div>
+        {error && (
+          <div className="state-panel" data-variant="error">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div>
+              <div className="state-title">Error</div>
+              <div className="state-copy">{error}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Location tracking info */}
+        {isEnRoute && (
+          <div className="state-panel" data-variant={isTracking ? 'success' : 'loading'}>
+             <svg className={`w-5 h-5 ${isTracking ? 'text-emerald-600' : 'text-blue-600 animate-pulse'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+             </svg>
+            <div>
+              <div className="state-title">{isTracking ? 'Location tracking active' : 'Connecting to GPS...'}</div>
+              <div className="state-copy">
+                {lastLocation 
+                  ? `Your current position: ${lastLocation.coordinates[1].toFixed(4)}, ${lastLocation.coordinates[0].toFixed(4)}`
+                  : 'Waiting for coordinates. Please ensure location services are enabled.'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="surface-panel">
+          <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900">Job Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="field">
+              <label className="field-label">Vehicle</label>
+              <div className="helper-text font-medium text-gray-800">
+                {booking.vehicleInfo ? `${booking.vehicleInfo.brand} ${booking.vehicleInfo.model} (${booking.vehicleInfo.vehicleType})` : '-'}
+              </div>
+            </div>
+            <div className="field">
+              <label className="field-label">Customer</label>
+              <div className="helper-text font-medium text-gray-800">{booking.userId?.fullname || '-'}</div>
+            </div>
+            <div className="field">
+              <label className="field-label">Phone</label>
+              <div className="helper-text font-medium text-gray-800">{booking.userId?.phone || '-'}</div>
+            </div>
+            <div className="field">
+              <label className="field-label">Address</label>
+              <div className="helper-text font-medium text-gray-800">{booking.serviceLocation?.serviceAddress?.formattedAddress || '-'}</div>
+            </div>
+            <div className="field col-span-full">
+              <label className="field-label">Problem description</label>
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 italic">
+                "{booking.problemDescription || 'No description provided'}"
+              </div>
+            </div>
+            <div className="field">
+              <label className="field-label">Distance from shop</label>
+              <div className="helper-text font-bold text-blue-600">{booking.liveTracking?.distanceKm != null ? `${booking.liveTracking.distanceKm} km` : '-'}</div>
+            </div>
+            <div className="field">
+              <label className="field-label">Estimated travel time</label>
+              <div className="helper-text font-bold text-blue-600">{booking.liveTracking?.etaMinutes != null ? `${booking.liveTracking.etaMinutes} min` : '-'}</div>
+            </div>
+            <div className="field">
+              <label className="field-label">Inspection fee</label>
+              <div className="helper-text font-bold text-gray-900">₹{booking.inspection?.inspectionFeeFinal != null ? booking.inspection.inspectionFeeFinal : '-'}</div>
+            </div>
           </div>
         </div>
-      )}
 
-      {isEnRoute && (
-        <div className="state-panel" data-variant={isTracking ? 'success' : 'loading'}>
-          <div>
-            <div className="state-title">{isTracking ? 'Location tracking active' : 'Starting location tracking'}</div>
-            <div className="state-copy">{lastLocation ? `Latest coordinates: ${lastLocation.coordinates[1].toFixed(4)}, ${lastLocation.coordinates[0].toFixed(4)}` : 'The vendor location will update while the booking is en route.'}</div>
+        {booking.diagnosis && booking.diagnosis.suggestedServices && booking.diagnosis.suggestedServices.length > 0 && (
+          <div className="surface-panel">
+            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Service Diagnosis</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-100/50">
+                    <tr>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Service Item</th>
+                      <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Quoted Fee</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {booking.diagnosis.suggestedServices.map((s, i) => (
+                      <tr key={i} className="hover:bg-gray-100/30 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-gray-800">{s.customServiceName || s.serviceId}</td>
+                        <td className="px-6 py-4 text-right font-bold text-blue-700">₹{s.vendorQuotedPrice}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {booking.diagnosis.issues && booking.diagnosis.issues.length > 0 && (
+                <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                  <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-2">Identified Issues</h4>
+                  <p className="text-sm text-amber-900">{booking.diagnosis.issues.join(', ')}</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isEnRoute && locationError && (
-        <div className="state-panel" data-variant="error">
-          <div>
-            <div className="state-title">Location permission denied</div>
-            <div className="state-copy">Please enable location services to update your position.</div>
-          </div>
-        </div>
-      )}
+        <div className="flex flex-col gap-4 py-8">
+          {stateActions[bookingState] && (
+            <button
+              className="btn-primary w-full max-w-md mx-auto"
+              onClick={() => handleStateAction(stateActions[bookingState].next)}
+              disabled={processing}
+            >
+              {processing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Updating...
+                </div>
+              ) : stateActions[bookingState].label}
+            </button>
+          )}
 
-      <div className="card surface-panel">
-        <div className="form-grid two-col">
-          <div className="field">
-            <div className="field-label">Vehicle</div>
-            <div className="helper-text">{booking.vehicleInfo ? `${booking.vehicleInfo.brand} ${booking.vehicleInfo.model} (${booking.vehicleInfo.vehicleType})` : '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Customer</div>
-            <div className="helper-text">{booking.userId?.fullname || '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Phone</div>
-            <div className="helper-text">{booking.userId?.phone || '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Address</div>
-            <div className="helper-text">{booking.serviceLocation?.serviceAddress?.formattedAddress || '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Problem</div>
-            <div className="helper-text">{booking.problemDescription || '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Distance</div>
-            <div className="helper-text">{booking.liveTracking?.distanceKm != null ? `${booking.liveTracking.distanceKm} km` : '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">ETA</div>
-            <div className="helper-text">{booking.liveTracking?.etaMinutes != null ? `${booking.liveTracking.etaMinutes} min` : '-'}</div>
-          </div>
-          <div className="field">
-            <div className="field-label">Inspection fee</div>
-            <div className="helper-text">₹{booking.inspection?.inspectionFeeFinal != null ? booking.inspection.inspectionFeeFinal : '-'}</div>
-          </div>
-        </div>
-      </div>
-
-
-      {booking.diagnosis && booking.diagnosis.suggestedServices && booking.diagnosis.suggestedServices.length > 0 && (
-        <div className="card surface-panel">
-          <h3 className="section-title">Diagnosis / suggested services</h3>
-          <ul style={{ display: 'grid', gap: 10 }}>
-            {booking.diagnosis.suggestedServices.map((s, i) => (
-              <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingBottom: 10, borderBottom: '1px solid var(--color-border)' }}>
-                <span>{s.customServiceName || s.serviceId}</span>
-                <span style={{ fontWeight: 700 }}>₹{s.vendorQuotedPrice}</span>
-              </li>
-            ))}
-          </ul>
-          {booking.diagnosis.issues && booking.diagnosis.issues.length > 0 && (
-            <div className="helper-text" style={{ marginTop: 12 }}>
-              <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>Issues:</span> {booking.diagnosis.issues.join(', ')}
+          {bookingState === 'WAITING_FOR_USER_APPROVAL' && (
+            <div className="state-panel max-w-md mx-auto w-full" data-variant="loading">
+              <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              <div>
+                <div className="state-title">Waiting for customer approval</div>
+                <div className="state-copy">The customer is reviewing the diagnosis.</div>
+              </div>
             </div>
           )}
         </div>
-      )}
 
-      {stateActions[bookingState] && (
-        <button
-          className="btn-primary"
-          onClick={() => handleStateAction(stateActions[bookingState].next)}
-          disabled={processing}
-        >
-          {processing ? 'Updating...' : stateActions[bookingState].label}
-        </button>
-      )}
-
-      {bookingState === 'WAITING_FOR_USER_APPROVAL' && (
-        <div className="state-panel" data-variant="loading">
-          <div>
-            <div className="state-title">Waiting for customer approval</div>
-            <div className="state-copy">The customer is reviewing the diagnosis and suggested services. Once they approve, you can proceed with the service.</div>
+        {bookingState === 'INSPECTION_IN_PROGRESS' && (
+          <div className="max-w-2xl mx-auto w-full">
+            <InspectionForm
+              onSubmit={async ({ services, issues }) => {
+                setProcessing(true);
+                try {
+                  const res = await fetch(`/api/v1/bookings/${bookingId}/diagnosis`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      services: services.map(s => ({ customServiceName: s.customServiceName, quotedPrice: Number(s.quotedPrice) })),
+                      issues,
+                      inspectionFeeFinal: 200,
+                    }),
+                  });
+                  
+                  if (res.ok) {
+                    const data = await res.json();
+                    setBooking(data?.data?.booking || booking);
+                    setError(null);
+                    console.log('Diagnosis submitted successfully');
+                  } else {
+                    const errData = await res.json();
+                    setError(errData?.message || 'Failed to submit diagnosis');
+                  }
+                } catch (err) {
+                  setError('Failed to submit diagnosis: ' + err.message);
+                  console.error('Diagnosis error:', err);
+                } finally {
+                  setProcessing(false);
+                }
+              }}
+              loading={processing}
+            />
           </div>
-        </div>
-      )}
-
-      {bookingState === 'INSPECTION_IN_PROGRESS' && (
-        <InspectionForm
-          onSubmit={async ({ services, inspectionFee, issues }) => {
-            setProcessing(true);
-            try {
-              const res = await fetch(`/api/v1/bookings/${bookingId}/diagnosis`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  services: services.map(s => ({ customServiceName: s.customServiceName, quotedPrice: Number(s.quotedPrice) })),
-                  issues,
-                  inspectionFeeFinal: Number(inspectionFee),
-                }),
-              });
-              
-              if (res.ok) {
-                const data = await res.json();
-                setBooking(data?.data?.booking || booking);
-                setError(null);
-                console.log('Diagnosis submitted successfully');
-              } else {
-                const errData = await res.json();
-                setError(errData?.message || 'Failed to submit diagnosis');
-              }
-            } catch (err) {
-              setError('Failed to submit diagnosis: ' + err.message);
-              console.error('Diagnosis error:', err);
-            } finally {
-              setProcessing(false);
-            }
-          }}
-          loading={processing}
-        />
-      )}
-    </div>
+        )}
+      </div>
     </Layout>
   );
 }

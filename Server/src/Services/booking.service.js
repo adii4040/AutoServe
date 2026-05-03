@@ -664,7 +664,15 @@ const approveServices = async (userId, bookingId, payload) => {
         decisionAt: new Date(),
     };
 
-    pushStateHistory(booking, BOOKING_STATES.SERVICE_IN_PROGRESS, "USER", "User approved final service list");
+    const nextState = finalServices.length > 0 
+        ? BOOKING_STATES.SERVICE_IN_PROGRESS 
+        : BOOKING_STATES.COMPLETED;
+
+    const stateReason = finalServices.length > 0 
+        ? "User approved final service list" 
+        : "User rejected all suggested services";
+
+    pushStateHistory(booking, nextState, "USER", stateReason);
     await booking.save();
 
     return booking;
@@ -782,7 +790,7 @@ const getVendorMyBookings = async (vendorId) => {
     const bookings = await Booking.find({
         vendorId,
     })
-    .populate('userId', 'fullname phone address')
+    .populate('userId', 'fullname phone address avatar email')
     .sort({ createdAt: -1 });
 
     // Fetch vendor location from DB
@@ -828,7 +836,8 @@ const getVendorMyBookings = async (vendorId) => {
             } : null,
             distanceKm,
             etaMinutes,
-            status: b.bookingState,
+            bookingState: b.bookingState,
+            payments: b.payments,
             inspectionFee: 200,
         };
     });
@@ -843,7 +852,7 @@ const getVendorRequestedBookings = async (vendorId) => {
         vendorId: null, // Not yet accepted
         "dispatchMeta.vendorBatches": { $elemMatch: { $elemMatch: { $eq: vendorId } } }
     })
-    .populate('userId', 'fullname phone email avatar')
+    .populate('userId', 'fullname phone email address avatar')
     .sort({ createdAt: -1 });
 
     // Fetch vendor location from DB
@@ -873,6 +882,8 @@ const getVendorRequestedBookings = async (vendorId) => {
         return {
             bookingId: b._id,
             createdAt: b.createdAt,
+            bookingState: b.bookingState,
+            payments: b.payments,
             requestedServiceCategories: b.requestedServiceCategories,
             problemDescription: b.problemDescription,
             vehicleInfo: b.vehicleInfo,
@@ -892,9 +903,20 @@ const getVendorRequestedBookings = async (vendorId) => {
 const getVendorBookingDetail = async (vendorId, bookingId) => {
     const booking = await Booking.findOne({ _id: bookingId, vendorId }).populate(
         "userId",
-        "fullname phone email"
-    );
+        "fullname phone email address avatar"
+    ).lean();
     if (!booking) throw new ApiError(404, "Booking not found");
+
+    // Ensure 'user' property exists for compatibility
+    if (booking.userId && typeof booking.userId === 'object') {
+        booking.user = {
+            fullname: booking.userId.fullname,
+            phone: booking.userId.phone,
+            address: booking.userId.address,
+            email: booking.userId.email,
+            avatar: booking.userId.avatar?.url
+        };
+    }
 
     // Calculate distance and ETA
     let distanceKm = null;

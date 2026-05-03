@@ -55,9 +55,16 @@ const computeApprovedAmount = (booking, paymentType) => {
 
     if (paymentType === "service") {
         const finalServices = booking.serviceExecution?.finalServices || [];
-        const total = finalServices.reduce((sum, svc) => sum + (Number(svc.finalPrice) || 0), 0);
+        let total = finalServices.reduce((sum, svc) => sum + (Number(svc.finalPrice) || 0), 0);
+        
+        // If inspection is unpaid, include it in the service payment to settle the full balance for user convenience
+        if (booking.payments?.inspection?.status !== "PAID") {
+            const inspectionFee = booking.inspection?.inspectionFeeFinal || 0;
+            total += inspectionFee;
+        }
+
         if (total <= 0) {
-            throw new ApiError(400, "No approved services found for payment");
+            throw new ApiError(400, "No approved services or inspection fees found for payment");
         }
         return total;
     }
@@ -81,7 +88,8 @@ const createOrder = asyncHandler(async (req, res) => {
     }
 
     if (paymentType === "inspection") {
-        if (booking.bookingState !== "WAITING_FOR_USER_APPROVAL") {
+        const allowedStates = ["WAITING_FOR_USER_APPROVAL", "SERVICE_IN_PROGRESS", "COMPLETED"];
+        if (!allowedStates.includes(booking.bookingState)) {
             throw new ApiError(400, "Inspection payment can only be initiated after diagnosis is submitted");
         }
     }
@@ -283,7 +291,24 @@ const verifyPayment = asyncHandler(async (req, res) => {
     } else if (paymentType === "service") {
         booking.payments.service.status = "PAID";
         booking.payments.service.paidAt = new Date();
-        booking.payments.service.amount = booking.payment.amount;
+        
+        const inspectionFee = booking.inspection?.inspectionFeeFinal || 0;
+        const totalPaid = booking.payment.amount;
+        
+        // If this was a combined payment (inspection was unpaid at order time)
+        // calculate service-only amount for clean reporting
+        if (booking.payments.inspection.status !== "PAID" && totalPaid > inspectionFee) {
+            booking.payments.service.amount = totalPaid - inspectionFee;
+            
+            // Mark inspection as paid separately with its own portion
+            booking.payments.inspection.status = "PAID";
+            booking.payments.inspection.paidAt = new Date();
+            booking.payments.inspection.amount = inspectionFee;
+            if (paymentMode) booking.payments.inspection.mode = paymentMode;
+        } else {
+            booking.payments.service.amount = totalPaid;
+        }
+        
         if (paymentMode) booking.payments.service.mode = paymentMode;
     }
 
@@ -302,6 +327,14 @@ const verifyPayment = asyncHandler(async (req, res) => {
     });
 
     if (booking.vendorId) {
+        // Update vendor stats
+        await Vendor.findByIdAndUpdate(booking.vendorId, {
+            $inc: { 
+                totalRevenue: booking.payment.amount,
+                completedBookingsCount: paymentType === "service" ? 1 : 0 
+            }
+        });
+
         await notificationService.notifyVendor?.(booking.vendorId.toString(), "PAYMENT_RECEIVED", {
             bookingId: booking._id.toString(),
             paymentId: razorpay_payment_id,

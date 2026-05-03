@@ -375,6 +375,38 @@ export const updateAvailabilityStatus = asyncHandler(async (req, res) => {
     );
 });
 
+const updateVendorProfile = asyncHandler(async (req, res) => {
+    const { fullname, shopName, phone, personalAddress, shopAddress, serviceCategories } = req.body;
+
+    const vendor = await Vendor.findById(req.vendor._id);
+    if (!vendor) throw new ApiError(404, "Vendor not found");
+
+    if (fullname) vendor.fullname = fullname;
+    if (shopName) vendor.shopName = shopName;
+    if (phone) vendor.phone = phone;
+
+    if (personalAddress || shopAddress) {
+        vendor.address = {
+            personalAddress: personalAddress || vendor.address.personalAddress,
+            shopAddress: shopAddress || vendor.address.shopAddress,
+        };
+    }
+
+    if (serviceCategories) {
+        vendor.serviceCategories = serviceCategories;
+    }
+
+    await vendor.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { vendor },
+            "Profile updated successfully"
+        )
+    );
+});
+
 export {
     registerVendor,
     getAllUnVerifiedVendorsData,
@@ -384,4 +416,5 @@ export {
     logoutVendor,
     getCurrentVendor,
     activateVendorAccount,
-}
+    updateVendorProfile,
+};

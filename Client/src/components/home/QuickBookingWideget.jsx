@@ -36,7 +36,7 @@ export default function QuickBookingWidget({ onSearch }) {
                     <SelectValue placeholder="Select service" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Car Wash & Detailing">Car Wash & Detailing</SelectItem>
+                    <SelectItem value="Car Wash and Detailing">Car Wash and Detailing</SelectItem>
                     <SelectItem value="Mechanical Repairs">Mechanical Repairs</SelectItem>
                     <SelectItem value="Accessories & Installation">Accessories & Installation</SelectItem>
                     <SelectItem value="Emergency Roadside">Emergency Roadside</SelectItem>

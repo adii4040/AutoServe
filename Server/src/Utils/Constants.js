@@ -10,7 +10,7 @@ const cookieOption = {
 const ServiceCategoriesEnum = [
     "Mechanical Service",
     "Electrical Service",
-    "Car Wash & Detailing",
+    "Car Wash and Detailing",
     "Battery Service",
     "Tyre Service",
 ];

@@ -109,6 +109,9 @@ const vendorSchema = new Schema({
     emailVerificationToken: String,
     emailVerificationTokenExpiry: Date,
 
+    // Stats (Cached)
+    totalRevenue: { type: Number, default: 0 },
+    completedBookingsCount: { type: Number, default: 0 },
 
 }, {
     timestamps: true,

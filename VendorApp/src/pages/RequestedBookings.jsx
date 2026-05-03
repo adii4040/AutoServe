@@ -82,93 +82,93 @@ function RequestedBookings() {
   return (
     <Layout>
       <div className="page-shell">
-        <div className="page-header app-hero">
-          <div>
-            <div className="chip" data-tone="warning">Incoming requests</div>
-            <h1 className="page-title" style={{ marginTop: 12 }}>Requested bookings</h1>
-            <p className="page-subtitle">Review new booking requests, respond before the timer expires, and keep your live queue moving.</p>
+        <div className="app-hero">
+          <div className="z-10">
+            <span className="inline-block mb-4 px-3 py-1 bg-amber-600/20 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-md">
+              Dispatch Center
+            </span>
+            <h1 className="page-title">Service Requests</h1>
+            <p className="page-subtitle">Real-time incoming requests. Accept or decline assignments to optimize your shop's schedule.</p>
           </div>
         </div>
 
         {isLoading ? (
           <div className="state-panel" data-variant="loading">
+             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
             <div>
-              <div className="state-title">Loading requested bookings</div>
-              <div className="state-copy">Checking for the latest customer requests.</div>
+              <div className="state-title">Loading requests</div>
+              <div className="state-copy">Checking for incoming customer bookings.</div>
             </div>
           </div>
         ) : isError ? (
           <div className="state-panel" data-variant="error" role="alert">
             <div>
-              <div className="state-title">Could not load requests</div>
+              <div className="state-title">Connection error</div>
               <div className="state-copy">{error?.message || 'Failed to load requested bookings.'}</div>
             </div>
           </div>
         ) : bookings && bookings.length === 0 ? (
           <div className="empty-state surface-panel">
-            <h3>No requested bookings</h3>
-            <p>You have no pending customer requests right now. New requests will appear here as soon as they are assigned.</p>
+             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+             </div>
+            <h3>No requests right now</h3>
+            <p>New booking requests will appear here as soon as they are assigned to you.</p>
           </div>
         ) : (
-          <div className="form-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {bookings.map((booking) => {
               const remaining = timers[booking.bookingId] || 0;
               const isExpired = remaining <= 0;
               const isProcessing = processing.id === booking.bookingId;
+              const timerColor = remaining <= 5 ? 'chip-error' : remaining <= 10 ? 'chip-warning' : 'chip-primary';
 
               return (
-                <article key={booking.bookingId} className="card surface-panel">
-                  <div className="page-header" style={{ alignItems: 'center' }}>
-                    <div>
-                      <div className="section-title">{booking.requestedServiceCategories?.join(', ') || 'Requested service'}</div>
-                      <p className="helper-text">
-                        {booking.user?.fullname || 'Unknown customer'} {booking.user?.phone ? `• ${booking.user.phone}` : ''}
+                <article key={booking.bookingId} className="metric-card !p-0 overflow-hidden flex flex-col group">
+                   <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex flex-col">
+                           <h4 className="text-lg font-bold text-gray-900 mb-1">{booking.requestedServiceCategories?.join(', ') || 'Service Request'}</h4>
+                           <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-gray-600">{booking.user?.fullname || 'Customer'}</span>
+                              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                              <span className="text-sm font-medium text-blue-600">{booking.distanceKm != null ? `${booking.distanceKm} km away` : 'Distance unknown'}</span>
+                           </div>
+                        </div>
+                        <div className={`chip ${timerColor} !px-3 !py-1 !text-xs font-black animate-pulse`}>
+                          {isExpired ? 'EXPIRED' : `${remaining}S`}
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100/50 mb-6">
+                         <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block mb-2">Customer Reported Problem</span>
+                         <p className="text-sm text-gray-700 italic">"{booking.problemDescription || 'No description provided.'}"</p>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <button
+                          className="btn-ghost flex-1 py-3 text-sm"
+                          disabled={isExpired || isProcessing}
+                          onClick={() => handleReject(booking.bookingId)}
+                        >
+                          {isProcessing && processing.action === 'reject' ? '...' : 'Reject'}
+                        </button>
+                        <button
+                          className="btn-primary flex-1 py-3 text-sm"
+                          disabled={isExpired || isProcessing}
+                          onClick={() => handleAccept(booking.bookingId)}
+                        >
+                          {isProcessing && processing.action === 'accept' ? '...' : 'Accept Request'}
+                        </button>
+                      </div>
+                   </div>
+                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
+                        Respond now to avoid expiration
                       </p>
-                    </div>
-                    <div className="chip" data-tone={isExpired ? 'danger' : remaining <= 5 ? 'warning' : 'primary'}>
-                      {isExpired ? 'Expired' : `${remaining}s remaining`}
-                    </div>
-                  </div>
-
-                  <div className="section-divider" />
-
-                  <div className="form-grid two-col">
-                    <div>
-                      <div className="field-label">Customer</div>
-                      <div className="helper-text">{booking.user?.fullname || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="field-label">Distance</div>
-                      <div className="helper-text">{booking.distanceKm != null ? `${booking.distanceKm} km` : '-'}</div>
-                    </div>
-                    <div className="field">
-                      <div className="field-label">Problem</div>
-                      <div className="helper-text">{booking.problemDescription || 'No description provided.'}</div>
-                    </div>
-                    <div className="field">
-                      <div className="field-label">Request timer</div>
-                      <div className="helper-text">Respond before the booking expires to keep the request active.</div>
-                    </div>
-                  </div>
-
-                  <div className="section-divider" style={{ marginTop: 18 }} />
-
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn-secondary"
-                      disabled={isExpired || isProcessing}
-                      onClick={() => handleReject(booking.bookingId)}
-                    >
-                      {isProcessing && processing.action === 'reject' ? 'Rejecting...' : 'Reject'}
-                    </button>
-                    <button
-                      className="btn-primary"
-                      disabled={isExpired || isProcessing}
-                      onClick={() => handleAccept(booking.bookingId)}
-                    >
-                      {isProcessing && processing.action === 'accept' ? 'Accepting...' : 'Accept'}
-                    </button>
-                  </div>
+                   </div>
                 </article>
               )
             })}

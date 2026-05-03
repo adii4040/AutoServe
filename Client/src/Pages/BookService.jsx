@@ -5,7 +5,7 @@ import { AuthContext } from '@/context/AuthContext';
 
 const serviceCardMap = {
   'Mechanical':   'Mechanical Service',
-  'Car Wash':     'Car Wash & Detailing',
+  'Car Wash':     'Car Wash and Detailing',
   'Battery':      'Battery Service',
   'Tyre / Wheel': 'Tyre Service',
 };
