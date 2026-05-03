@@ -10,8 +10,8 @@ export default function OngoingBookingsList({
     <div>
       {bookings.length === 0 ? (
         <div className="empty-state surface-panel">
-          <h3>No ongoing bookings</h3>
-          <p>Bookings currently in progress will appear here with quick state controls and status context.</p>
+          <h3>No bookings yet</h3>
+          <p>Assigned bookings, including completed jobs, will appear here with status context and quick actions.</p>
         </div>
       ) : (
         <div className="form-grid">
