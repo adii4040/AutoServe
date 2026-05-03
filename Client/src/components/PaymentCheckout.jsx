@@ -116,14 +116,7 @@ export default function PaymentCheckout({
           bookingId,
           paymentType,
         },
-        method: {
-          upi: true,
-          card: true,
-          wallet: false,
-          netbanking: false,
-          emi: false,
-          paylater: false,
-        },
+
       });
 
       // Step 5: Verify payment signature

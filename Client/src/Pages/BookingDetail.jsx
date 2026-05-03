@@ -122,11 +122,29 @@ export default function BookingDetail() {
   };
 
   const handleRejectServices = async () => {
-    toast({
-      title: 'Service rejection not yet implemented',
-      description: 'Please cancel the booking instead.',
-      variant: 'destructive',
-    });
+    setActionLoading(true);
+    try {
+      // Reject all services (empty approvedIndexes, all indexes in rejectedIndexes)
+      const allIndexes = booking.diagnosis.suggestedServices.map((_, idx) => idx);
+      await approveServices(bookingId, [], allIndexes);
+
+      toast({
+        title: 'Services rejected',
+        description: 'You have rejected the suggested services. Please pay the inspection fee.',
+      });
+
+      // Refresh booking data
+      await fetchBooking();
+    } catch (err) {
+      toast({
+        title: 'Failed to reject services',
+        description: err.message,
+        variant: 'destructive',
+      });
+      console.error('Reject services error:', err);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleCancelBooking = async () => {
@@ -209,8 +227,8 @@ export default function BookingDetail() {
   // Check both bookingState and the presence of cancellation data as fallback
   const isCancelled = bookingState === 'CANCELLED' || (booking?.cancellation?.cancelledAt ? true : false);
   const canCancel = booking !== null && !isCompleted && !isCancelled;
-  const inspectionAmount = booking?.payments?.inspection?.amount || booking?.inspection?.amount || 0;
-  const serviceAmount = booking?.payments?.service?.amount || booking?.service?.amount || 0;
+  const inspectionAmount = booking?.payments?.inspection?.amount || booking?.inspection?.inspectionFeeFinal || 0;
+  const serviceAmount = booking?.payments?.service?.amount || (booking?.serviceExecution?.finalServices || []).reduce((sum, s) => sum + (s.finalPrice || 0), 0) || 0;
   const inspectionPaymentDue = inspectionAmount > 0 && booking?.payments?.inspection?.status !== 'PAID';
   const servicePaymentDue = isCompleted && serviceAmount > 0 && booking?.payments?.service?.status !== 'PAID';
 
@@ -362,7 +380,7 @@ export default function BookingDetail() {
                         {service.serviceName || service.customServiceName || 'Service'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Price: ₹{service.quotedPrice || 0}
+                        Price: ₹{service.vendorQuotedPrice || 0}
                       </p>
                     </div>
                   ))}
@@ -370,10 +388,10 @@ export default function BookingDetail() {
               </div>
             )}
 
-            {booking.diagnosis.inspectionFeeFinal && (
+            {booking.inspection?.inspectionFeeFinal && (
               <div>
                 <span className="font-medium text-gray-700">Inspection Fee:</span>
-                <p className="text-gray-900">₹{booking.diagnosis.inspectionFeeFinal}</p>
+                <p className="text-gray-900">₹{booking.inspection.inspectionFeeFinal}</p>
               </div>
             )}
           </CardContent>
@@ -392,7 +410,7 @@ export default function BookingDetail() {
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-700">Inspection:</span>
                   <div className="text-right">
-                    <p className="text-gray-900 font-semibold">₹{(inspectionAmount / 100).toFixed(2)}</p>
+                    <p className="text-gray-900 font-semibold">₹{Number(inspectionAmount).toFixed(2)}</p>
                     <p className="text-xs text-gray-500">
                       {booking?.payments?.inspection?.status || 'Pending'}
                     </p>
@@ -405,7 +423,7 @@ export default function BookingDetail() {
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-gray-700">Service:</span>
                   <div className="text-right">
-                    <p className="text-gray-900 font-semibold">₹{(serviceAmount / 100).toFixed(2)}</p>
+                    <p className="text-gray-900 font-semibold">₹{Number(serviceAmount).toFixed(2)}</p>
                     <p className="text-xs text-gray-500">
                       {booking?.payments?.service?.status || 'Pending'}
                     </p>
@@ -449,10 +467,10 @@ export default function BookingDetail() {
               </div>
             )}
 
-            {/* Payment Button */}
-            {isWaitingForApproval && inspectionPaymentDue && (
+            {/* Pay Inspection Button - Only show IF decision was made AND services were rejected */}
+            {(isWaitingForApproval || isCompleted) && inspectionPaymentDue && booking?.userApproval?.rejectedIndexes?.length > 0 && booking?.userApproval?.approvedIndexes?.length === 0 && (
               <div className="p-4 bg-green-50 rounded border border-green-200">
-                <p className="text-sm text-gray-700 mb-3">Inspection fee is ready for payment after diagnosis approval.</p>
+                <p className="text-sm text-gray-700 mb-3">You have rejected the services. Please pay the inspection fee to complete this booking.</p>
                 <PaymentCheckout
                   bookingId={bookingId}
                   paymentType="inspection"
@@ -461,7 +479,7 @@ export default function BookingDetail() {
                   userName={booking?.userId?.fullname}
                   userPhone={booking?.userId?.phone}
                   onPaymentSuccess={handlePaymentSuccess}
-                  buttonLabel={`Pay Inspection ₹${(inspectionAmount / 100).toFixed(2)}`}
+                  buttonLabel={`Pay Inspection ₹${Number(inspectionAmount).toFixed(2)}`}
                   variant="default"
                 />
               </div>
@@ -478,7 +496,7 @@ export default function BookingDetail() {
                   userName={booking?.userId?.fullname}
                   userPhone={booking?.userId?.phone}
                   onPaymentSuccess={handlePaymentSuccess}
-                  buttonLabel={`Pay Service ₹${(serviceAmount / 100).toFixed(2)}`}
+                  buttonLabel={`Pay Total ₹${(Number(serviceAmount) + (inspectionPaymentDue ? Number(inspectionAmount) : 0)).toFixed(2)}`}
                   variant="default"
                 />
               </div>

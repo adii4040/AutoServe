@@ -13,7 +13,7 @@ import {
 const serviceCategories = [
   {
     id: 'car_wash',
-    title: 'Car Wash & Detailing',
+    title: 'Car Wash and Detailing',
     description: 'Professional cleaning, waxing, and detailing services',
     icon: Droplets,
     color: 'bg-blue-500',

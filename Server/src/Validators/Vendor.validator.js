@@ -89,21 +89,14 @@ const resetPasswordValidation = z.object({
     message: "Confirm password does not match"
 })
 
-const updateVendorValidation = z.object({
-    fullname: z
-        .string()
-        .trim()
-        .min(1, "Fullname can't be empty")
-        .optional()
-        .or(z.literal("")),
-
-    email: z
-        .email("Invalid email format")
-        .optional()
-        .or(z.literal("")),
-    address: z.string().trim(),
-
-})
+const updateVendorProfileValidation = z.object({
+    fullname: z.string().trim().min(1, "Fullname can't be empty").optional(),
+    shopName: z.string().trim().min(1, "Shop name can't be empty").optional(),
+    phone: indianPhoneRegex.optional(),
+    personalAddress: z.string().trim().min(1, "Personal address is required").optional(),
+    shopAddress: z.string().trim().min(1, "Shop address is required").optional(),
+    serviceCategories: z.array(z.string()).optional(),
+});
 
 const updateVendorLocationValidation = z.object({
     coordinates: z.tuple([
@@ -119,4 +112,5 @@ export {
     loginVendorValidation,
     activateVendorAccountValidation,
     updateVendorLocationValidation,
+    updateVendorProfileValidation,
 }

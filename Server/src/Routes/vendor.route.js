@@ -14,6 +14,7 @@ import {
     activateVendorAccount,
     updateAvailabilityStatus,
     getVendorBookingDetailController,
+    updateVendorProfile,
 } from '../Controllers/vendor.controller.js'
 import { updateVendorBookingState } from '../Controllers/vendorBookingState.controller.js'
 
@@ -28,6 +29,7 @@ import {
     physicalVerificationValidation,
     loginVendorValidation,
     activateVendorAccountValidation,
+    updateVendorProfileValidation,
 } from '../Validators/Vendor.validator.js'
 
 
@@ -55,6 +57,12 @@ router.route('/availability').patch(
         }
     },
     updateAvailabilityStatus
+);
+
+router.route('/profile').patch(
+    verifyVendorJWT,
+    validate(updateVendorProfileValidation, validationSource.BODY),
+    updateVendorProfile
 );
 
 router.route('/register').post(vendorUpload.fields([

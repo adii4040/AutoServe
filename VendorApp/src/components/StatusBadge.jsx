@@ -1,36 +1,26 @@
-const statusStyles = {
-  COMPLETED: 'chip' + " " + "" ,
-  SERVICE_IN_PROGRESS: 'chip',
-  INSPECTION_IN_PROGRESS: 'chip',
-  WAITING_FOR_USER_APPROVAL: 'chip',
-  CANCELLED: 'chip',
-  VENDOR_ASSIGNED: 'chip',
-  VENDOR_EN_ROUTE: 'chip',
-  DISPATCHING: 'chip',
-  CREATED: 'chip',
-};
-
-const statusTone = {
-  COMPLETED: 'success',
-  SERVICE_IN_PROGRESS: 'primary',
-  INSPECTION_IN_PROGRESS: 'warning',
-  WAITING_FOR_USER_APPROVAL: 'warning',
-  CANCELLED: 'danger',
-  VENDOR_ASSIGNED: 'primary',
-  VENDOR_EN_ROUTE: 'primary',
-  DISPATCHING: 'primary',
-  CREATED: 'primary',
+const statusClasses = {
+  COMPLETED: 'chip-success',
+  SERVICE_IN_PROGRESS: 'chip-primary',
+  INSPECTION_IN_PROGRESS: 'chip-warning',
+  WAITING_FOR_USER_APPROVAL: 'chip-warning',
+  CANCELLED: 'chip-error',
+  VENDOR_ASSIGNED: 'chip-primary',
+  VENDOR_EN_ROUTE: 'chip-primary',
+  DISPATCHING: 'chip-primary',
+  CREATED: 'chip-primary',
 };
 
 export default function StatusBadge({ status }) {
   if (!status || typeof status !== 'string') {
-    return <span className="chip" data-tone="primary">Unknown</span>;
+    return <span className="chip chip-primary">Unknown</span>;
   }
 
-  const tone = statusTone[status] || 'primary';
+  const className = statusClasses[status] || 'chip-primary';
+  const label = status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  
   return (
-    <span className="chip" data-tone={tone}>
-      {status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+    <span className={`chip ${className}`}>
+      {label}
     </span>
   );
 }
