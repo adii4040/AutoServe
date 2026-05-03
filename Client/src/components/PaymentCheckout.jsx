@@ -92,8 +92,8 @@ export default function PaymentCheckout({
         throw new Error('Failed to create payment order');
       }
 
-      // Step 3: Get Razorpay API key from window or environment
-      const razorpayKey = window.RAZORPAY_KEY_ID || process.env.REACT_APP_RAZORPAY_KEY;
+      // Step 3: Get Razorpay API key from window or Vite environment
+      const razorpayKey = window.RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
         throw new Error('Razorpay key not configured');
       }

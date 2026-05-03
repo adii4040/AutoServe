@@ -211,6 +211,8 @@ export default function BookingDetail() {
   const canCancel = booking !== null && !isCompleted && !isCancelled;
   const inspectionAmount = booking?.payments?.inspection?.amount || booking?.inspection?.amount || 0;
   const serviceAmount = booking?.payments?.service?.amount || booking?.service?.amount || 0;
+  const inspectionPaymentDue = inspectionAmount > 0 && booking?.payments?.inspection?.status !== 'PAID';
+  const servicePaymentDue = isCompleted && serviceAmount > 0 && booking?.payments?.service?.status !== 'PAID';
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -282,7 +284,7 @@ export default function BookingDetail() {
 
       {/* Main Booking Info Card */}
       <Card className="mb-6">
-        <CardHeader className={`bg-gradient-to-r ${isCancelled ? 'from-red-50 to-pink-50' : 'from-blue-50 to-indigo-50'}`}>
+        <CardHeader className={`bg-linear-to-r ${isCancelled ? 'from-red-50 to-pink-50' : 'from-blue-50 to-indigo-50'}`}>
           <CardTitle>Booking Information</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
@@ -330,7 +332,7 @@ export default function BookingDetail() {
       {/* Diagnosis Card (if available) */}
       {booking?.diagnosis && (
         <Card className="mb-6">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardHeader className="bg-linear-to-r from-purple-50 to-pink-50">
             <CardTitle>Diagnosis Information</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
@@ -381,7 +383,7 @@ export default function BookingDetail() {
       {/* Payment Status Card */}
       {(inspectionAmount > 0 || serviceAmount > 0) && (
         <Card className="mb-6">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+          <CardHeader className="bg-linear-to-r from-green-50 to-emerald-50">
             <CardTitle>Payment Information</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
@@ -448,37 +450,37 @@ export default function BookingDetail() {
             )}
 
             {/* Payment Button */}
-            {isServiceInProgress && (
+            {isWaitingForApproval && inspectionPaymentDue && (
               <div className="p-4 bg-green-50 rounded border border-green-200">
-                <p className="text-sm text-gray-700 mb-3">Service is in progress. Complete payment to finalize.</p>
-                <div className="flex gap-2">
-                  {inspectionAmount > 0 && booking?.payments?.inspection?.status !== 'PAID' && (
-                    <PaymentCheckout
-                      bookingId={bookingId}
-                      paymentType="inspection"
-                      amount={inspectionAmount}
-                      userEmail={booking?.userId?.email}
-                      userName={booking?.userId?.fullname}
-                      userPhone={booking?.userId?.phone}
-                      onPaymentSuccess={handlePaymentSuccess}
-                      buttonLabel={`Pay Inspection ₹${(inspectionAmount / 100).toFixed(2)}`}
-                      variant="default"
-                    />
-                  )}
-                  {serviceAmount > 0 && booking?.payments?.service?.status !== 'PAID' && (
-                    <PaymentCheckout
-                      bookingId={bookingId}
-                      paymentType="service"
-                      amount={serviceAmount}
-                      userEmail={booking?.userId?.email}
-                      userName={booking?.userId?.fullname}
-                      userPhone={booking?.userId?.phone}
-                      onPaymentSuccess={handlePaymentSuccess}
-                      buttonLabel={`Pay Service ₹${(serviceAmount / 100).toFixed(2)}`}
-                      variant="default"
-                    />
-                  )}
-                </div>
+                <p className="text-sm text-gray-700 mb-3">Inspection fee is ready for payment after diagnosis approval.</p>
+                <PaymentCheckout
+                  bookingId={bookingId}
+                  paymentType="inspection"
+                  amount={inspectionAmount}
+                  userEmail={booking?.userId?.email}
+                  userName={booking?.userId?.fullname}
+                  userPhone={booking?.userId?.phone}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  buttonLabel={`Pay Inspection ₹${(inspectionAmount / 100).toFixed(2)}`}
+                  variant="default"
+                />
+              </div>
+            )}
+
+            {isCompleted && servicePaymentDue && (
+              <div className="p-4 bg-green-50 rounded border border-green-200">
+                <p className="text-sm text-gray-700 mb-3">Service is complete. Pay now to finish the booking.</p>
+                <PaymentCheckout
+                  bookingId={bookingId}
+                  paymentType="service"
+                  amount={serviceAmount}
+                  userEmail={booking?.userId?.email}
+                  userName={booking?.userId?.fullname}
+                  userPhone={booking?.userId?.phone}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  buttonLabel={`Pay Service ₹${(serviceAmount / 100).toFixed(2)}`}
+                  variant="default"
+                />
               </div>
             )}
 

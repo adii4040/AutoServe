@@ -778,10 +778,9 @@ const getLiveTracking = async (userId, bookingId) => {
 };
 
 const getVendorMyBookings = async (vendorId) => {
-    // Only show bookings that are ongoing/active (not completed/cancelled)
+    // Show all bookings assigned to the vendor so completed work stays visible in history.
     const bookings = await Booking.find({
         vendorId,
-        bookingState: { $nin: [BOOKING_STATES.COMPLETED, BOOKING_STATES.CANCELLED] }
     })
     .populate('userId', 'fullname phone address')
     .sort({ createdAt: -1 });

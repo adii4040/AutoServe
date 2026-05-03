@@ -67,9 +67,9 @@ export default function BookingList() {
       <div className="page-shell">
         <div className="page-header app-hero">
           <div>
-            <div className="chip" data-tone="primary">Active queue</div>
-            <h1 className="page-title" style={{ marginTop: 12 }}>Ongoing bookings</h1>
-            <p className="page-subtitle">Track jobs in motion, filter by customer or service, and advance booking states with clearer feedback.</p>
+            <div className="chip" data-tone="primary">My bookings</div>
+            <h1 className="page-title" style={{ marginTop: 12 }}>Bookings</h1>
+            <p className="page-subtitle">Review assigned jobs, including completed work, and filter by customer or service.</p>
           </div>
         </div>
 
